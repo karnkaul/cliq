@@ -18,18 +18,24 @@ class Scanner {
 
 	[[nodiscard]] constexpr auto peek() const -> TokenType { return m_next.token_type; }
 
-	[[nodiscard]] constexpr auto get_token_type() const -> TokenType { return m_current.token.token_type; }
+	[[nodiscard]] constexpr auto get_token() const -> Token const& { return m_current.token; }
+	[[nodiscard]] constexpr auto get_token_type() const -> TokenType { return get_token().token_type; }
 	[[nodiscard]] constexpr auto get_option_type() const -> OptionType { return m_current.token.option_type; }
 
 	[[nodiscard]] constexpr auto get_key() const -> std::string_view { return m_current.key; }
 	[[nodiscard]] constexpr auto get_value() const -> std::string_view { return m_current.value; }
 
-	constexpr auto next_single(char& out_single, bool& out_is_last) -> bool {
-		if (m_current.token.option_type != OptionType::Singles || m_current.key.empty()) { return false; }
-		out_single = m_current.key.front();
+	constexpr auto next_letter(char& out_letter, bool& out_is_last) -> bool {
+		if (m_current.token.option_type != OptionType::Letters || m_current.key.empty()) { return false; }
+		out_letter = m_current.key.front();
 		m_current.key = m_current.key.substr(1);
 		out_is_last = m_current.key.empty();
 		return true;
+	}
+
+	constexpr auto next_letter(char& out_letter) -> bool {
+		auto is_last = false;
+		return next_letter(out_letter, is_last);
 	}
 
   private:

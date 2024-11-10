@@ -1,5 +1,4 @@
 #include <cliqr/instance.hpp>
-#include <printer.hpp>
 #include <scanner.hpp>
 #include <algorithm>
 #include <array>
@@ -22,50 +21,57 @@ constexpr void trim(std::string_view& out) {
 	while (is_space(out.back())) { out = out.substr(0, out.size() - 1); }
 }
 
-constexpr void split_key_single(std::string_view& key, char& single) {
-	trim(key);
-	if (key.size() == 1) {
-		single = key.front();
-		key = {};
-		return;
-	}
-	if (key.size() < 3 || key[1] != ',') { return; }
-	single = key.front();
-	key = key.substr(2);
+[[nodiscard]] auto make_string(std::size_t const reserved) -> std::string {
+	auto ret = std::string{};
+	ret.reserve(reserved);
+	return ret;
 }
 
-auto missing_arg(std::string_view const option_name) -> CommandResult {
-	std::cerr << std::format("Missing argument for '{}'\n", option_name);
-	return CommandResult::MissingArgument;
-}
+struct OptionKey {
+	char letter{};
+	std::string_view word{};
 
-auto missing_required(CommandResult const type, std::string_view const name) -> CommandResult {
-	std::string_view const type_str = [type] {
-		switch (type) {
-		default:
-		case CommandResult::MissingArgument: return "argument";
-		case CommandResult::MissingOption: return "option";
+	static constexpr auto make(std::string_view const input) -> OptionKey {
+		auto ret = OptionKey{.word = input};
+		trim(ret.word);
+		if (ret.word.size() == 1) {
+			ret.letter = ret.word.front();
+			ret.word = {};
+			return ret;
 		}
-	}();
-	std::cerr << std::format("Missing required {}: {}\n", type_str, name);
-	return type;
+		if (ret.word.size() < 3 || ret.word[1] != ',') { return ret; }
+		ret.letter = ret.word.front();
+		ret.word = ret.word.substr(2);
+		return ret;
+	}
+};
+
+template <typename ContainerT, typename GetStringT>
+constexpr auto get_max_width(ContainerT&& container, GetStringT get_string) -> std::size_t {
+	auto ret = std::size_t{};
+	for (auto const& t : container) { ret = std::max(ret, get_string(t).size()); }
+	return ret;
 }
 
-auto invalid_arg(std::string_view const name, std::string_view const arg) -> CommandResult {
-	std::cerr << std::format("Invalid argument for '{}': '{}'\n", name, arg);
-	return CommandResult::InvalidArgument;
+auto get_print_key(char const letter, std::string_view const word) -> std::string {
+	auto ret = std::string(4, ' ');
+	if (letter != 0) {
+		ret[0] = '-';
+		ret[1] = letter;
+		if (!word.empty()) { ret[2] = ','; }
+	}
+	if (!word.empty()) { std::format_to(std::back_inserter(ret), "--{}", word); }
+	return ret;
 }
 } // namespace
 
 struct Command::Impl {
 	struct Option {
-		std::string_view key{};
-		char single{};
+		OptionKey key{};
 		std::string_view name{};
 		std::string_view description{};
+		std::string print_key{};
 		std::unique_ptr<IBinding> binding{};
-		bool required{};
-		bool assigned{};
 	};
 
 	struct Argument {
@@ -74,7 +80,7 @@ struct Command::Impl {
 		std::unique_ptr<IBinding> binding{};
 	};
 
-	std::string_view app_name{};
+	std::string_view exe_name{};
 	std::string_view id{};
 	std::span<char const* const> args{};
 	std::vector<Option> options{};
@@ -87,56 +93,43 @@ struct Command::Impl {
 	bool early_return{};
 
 	void print_usage() const {
-		auto str = std::format("Usage: {} {} ", app_name, id);
+		auto str = std::format("Usage: {} {} ", exe_name, id);
 		for (auto const& option : options) {
 			str += '[';
-			if (option.single != 0) { std::format_to(std::back_inserter(str), "-{}", option.single); }
-			if (option.single != 0 && !option.key.empty()) { str += '|'; }
-			if (!option.key.empty()) { std::format_to(std::back_inserter(str), "--{}", option.key); }
-			if (!option.required) {
-				str += "[=";
-				option.binding->append_default_value(str);
-				str += ']';
-			}
-			str += "] ";
+			if (option.key.letter != 0) { std::format_to(std::back_inserter(str), "-{}", option.key.letter); }
+			if (option.key.letter != 0 && !option.key.word.empty()) { str += '|'; }
+			if (!option.key.word.empty()) { std::format_to(std::back_inserter(str), "--{}", option.key.word); }
+			str += "(=";
+			option.binding->append_default_value(str);
+			str += ")] ";
 		}
 
-		for (auto const& argument : arguments) { std::format_to(std::back_inserter(str), "[{}] ", argument.name); }
+		for (auto const& argument : arguments) { std::format_to(std::back_inserter(str), "<{}> ", argument.name); }
 		if (list_argument) { std::format_to(std::back_inserter(str), "[{}...]", list_argument->name); }
 		std::cout << str << "\n";
 	}
 
 	void print_help() const {
+		auto const width = get_max_width(options, [](auto const& option) -> std::string_view { return option.print_key; }) + 4;
 		auto str = std::ostringstream{};
-		str << "Usage: " << app_name << " " << id;
+		str << "Usage: " << exe_name << " " << id;
 		if (!options.empty()) { str << " [OPTION...]"; }
-		for (auto const& arg : arguments) { str << " [" << arg.name << "]"; }
+		for (auto const& arg : arguments) { str << " <" << arg.name << ">"; }
 		if (list_argument) { str << " [" << list_argument->name << "...]"; }
-		str << "\n\nOPTIONS\n" << std::left;
-		auto const width = get_max_width(options, [](auto const& option) { return option.key; }) + 2;
-		for (auto const& option : options) {
-			str << "  ";
-			auto single = std::array<char, 5>{' ', ' ', ' ', ' '};
-			if (option.single != 0) {
-				single[0] = '-';
-				single[1] = option.single;
-				if (!option.key.empty()) { single[2] = ','; }
-			}
-			str << single.data();
-			if (!option.key.empty()) {
-				str << "--" << std::setw(static_cast<int>(width)) << option.key;
-			} else {
-				str << std::setw(static_cast<int>(width));
-			}
-			str << option.description << "\n";
+		str << "\n";
+		if (!options.empty()) {
+			str << "\nOPTIONS\n" << std::left;
+			for (auto const& option : options) { str << "  " << std::setw(static_cast<int>(width)) << option.print_key << option.description << "\n"; }
 		}
 		std::cout << str.str();
 	}
 
-	auto parse() -> CommandResult {
+	auto parse() -> Result {
 		auto scanner = Scanner{args};
 		while (scanner.next()) {
-			switch (scanner.get_token_type()) {
+			auto token_type = scanner.get_token_type();
+			if (force_args) { token_type = TokenType::Argument; }
+			switch (token_type) {
 			case TokenType::OptEnd: force_args = true; break;
 			case TokenType::Argument: {
 				auto const result = parse_arg(scanner.get_value());
@@ -148,61 +141,58 @@ struct Command::Impl {
 				if (early_return || result != Result::Success) { return result; }
 				break;
 			}
-			default: return invalid_arg(id, scanner.get_value());
+			default: return Result::InvalidArgument;
 			}
 		}
-		for (auto const& option : options) {
-			if (option.required && !option.assigned) { return missing_required(Result::MissingOption, option.name); }
-		}
-		if (next_argument < arguments.size()) { return missing_required(Result::MissingArgument, arguments.at(next_argument).name); }
-		return CommandResult::Success;
+		if (next_argument < arguments.size()) { return missing_argument(arguments.at(next_argument).name); }
+		return Result::Success;
 	}
 
 	auto parse_option(Scanner& scanner) -> Result {
 		switch (scanner.get_option_type()) {
-		case OptionType::Singles: return parse_singles(scanner);
-		case OptionType::Key: return parse_key(scanner);
-		default: return invalid_arg(id, scanner.get_value());
+		case OptionType::Letters: return parse_letters(scanner);
+		case OptionType::Word: return parse_word(scanner);
+		default: return Result::InvalidOption;
 		}
 	}
 
-	auto parse_singles(Scanner& scanner) -> Result {
-		char single{};
+	auto parse_letters(Scanner& scanner) -> Result {
+		char letter{};
 		bool is_last{};
-		while (scanner.next_single(single, is_last)) {
-			auto* option = find_option(single);
-			if (option == nullptr) { return invalid_arg(id, {&single, 1}); }
-			if (!is_last && !option->binding->is_flag()) { return missing_arg(option->name); }
-			if (is_last) {
-				if (auto const result = parse_last_option(*option, scanner); result != Result::Success) { return result; }
-			} else {
-				if (auto const result = assign(*option, {}); result != Result::Success) { return result; }
-			}
+		while (scanner.next_letter(letter, is_last)) {
+			auto const input = std::string_view{&letter, 1};
+			auto* option = find_option(letter);
+			if (option == nullptr) { return invalid_option(letter); }
+			auto const result = [&] {
+				if (is_last) { return parse_last_option(input, *option, scanner); }
+				return assign(input, *option, {});
+			}();
+			if (result != Result::Success) { return result; }
 		}
 		return Result::Success;
 	}
 
-	auto parse_key(Scanner& scanner) -> Result {
-		auto const key = scanner.get_key();
-		if (try_builtin(key)) {
+	auto parse_word(Scanner& scanner) -> Result {
+		auto const input = scanner.get_key();
+		if (try_builtin(input)) {
 			early_return = true;
 			return Result::Success;
 		}
-		auto* option = find_option(key);
-		if (option == nullptr) { return invalid_arg(id, key); }
-		return parse_last_option(*option, scanner);
+		auto* option = find_option(input);
+		if (option == nullptr) { return unrecognized_option(input); }
+		return parse_last_option(input, *option, scanner);
 	}
 
-	static auto parse_last_option(Option& option, Scanner& scanner) -> Result {
+	auto parse_last_option(std::string_view const input, Option& option, Scanner& scanner) const -> Result {
 		auto value = scanner.get_value();
-		if (auto const result = get_value_for(option, value, scanner); result != Result::Success) { return result; }
-		return assign(option, value);
+		if (auto const result = get_value_for(input, option, value, scanner); result != Result::Success) { return result; }
+		return assign(input, option, value);
 	}
 
-	static auto get_value_for(Option const& option, std::string_view& out_value, Scanner& scanner) -> Result {
+	auto get_value_for(std::string_view const input, Option const& option, std::string_view& out_value, Scanner& scanner) const -> Result {
 		if (!option.binding->is_flag()) {
 			if (out_value.empty()) {
-				if (!scanner.next()) { return missing_arg(option.name); }
+				if (!scanner.next()) { return option_requires_argument(input); }
 				out_value = scanner.get_value();
 			}
 			return Result::Success;
@@ -215,51 +205,107 @@ struct Command::Impl {
 		return Result::Success;
 	}
 
-	static auto assign(Option& optioneter, std::string_view const value) -> Result {
-		if (!optioneter.binding->assign_argument(value)) { return invalid_arg(optioneter.name, value); }
-		optioneter.assigned = true;
+	auto assign(std::string_view const input, Option& option, std::string_view const value) const -> Result {
+		if (!option.binding->is_flag() && value.empty()) { return option_requires_argument(input); }
+		if (!option.binding->assign_argument(value)) { return invalid_value(option.name, value); }
 		return Result::Success;
 	}
 
 	auto parse_arg(std::string_view const input) -> Result {
 		Argument* argument = nullptr;
 		if (next_argument >= arguments.size()) {
-			if (!list_argument) { return invalid_arg(id, input); }
-			argument = &*list_argument;
+			if (list_argument) { argument = &*list_argument; }
 		} else {
 			argument = &arguments.at(next_argument++);
 		}
 
-		assert(argument != nullptr);
-		if (!argument->binding->assign_argument(input)) { return invalid_arg(argument->name, input); }
+		if (argument != nullptr && !argument->binding->assign_argument(input)) { return invalid_value(argument->name, input); }
 		return Result::Success;
 	}
 
 	[[nodiscard]] auto find_option(std::string_view const key) -> Option* {
 		for (auto& option : options) {
-			if (option.key == key) { return &option; }
+			if (option.key.word == key) { return &option; }
 		}
 		return nullptr;
 	}
 
-	[[nodiscard]] auto find_option(char const single) -> Option* {
+	[[nodiscard]] auto find_option(char const letter) -> Option* {
 		for (auto& option : options) {
-			if (option.single != 0 && option.single == single) { return &option; }
+			if (option.key.letter == letter) { return &option; }
 		}
 		return nullptr;
 	}
 
-	[[nodiscard]] auto try_builtin(std::string_view const key) const -> bool {
-		if (key == "help") {
+	[[nodiscard]] auto try_builtin(std::string_view const word) const -> bool {
+		if (word == "help") {
 			print_help();
 			return true;
 		}
-		if (key == "usage") {
+		if (word == "usage") {
 			print_usage();
 			return true;
 		}
 		return false;
 	}
+
+	[[nodiscard]] auto invalid_value(std::string_view const name, std::string_view value) const -> Result {
+		auto printer = ErrorPrinter{*this};
+		printer.append_helpline = false;
+		std::format_to(std::back_inserter(printer.str), "invalid {}: '{}'\n", name, value);
+		return Result::InvalidValue;
+	}
+
+	[[nodiscard]] auto invalid_option(char const letter) const -> Result {
+		auto printer = ErrorPrinter{*this};
+		std::format_to(std::back_inserter(printer.str), "invalid option -- '{}'\n", letter);
+		return Result::InvalidOption;
+	}
+
+	[[nodiscard]] auto unrecognized_option(std::string_view const input) const -> Result {
+		auto printer = ErrorPrinter{*this};
+		std::format_to(std::back_inserter(printer.str), "unrecognized option '--{}'\n", input);
+		return Result::InvalidOption;
+	}
+
+	[[nodiscard]] auto option_requires_argument(std::string_view const input) const -> Result {
+		auto printer = ErrorPrinter{*this};
+		if (input.size() == 1) {
+			std::format_to(std::back_inserter(printer.str), "option requires an argument -- '{}'\n", input);
+		} else {
+			std::format_to(std::back_inserter(printer.str), "option '{}' requires an argument\n", input);
+		}
+		return Result::MissingArgument;
+	}
+
+	[[nodiscard]] auto missing_argument(std::string_view const name) const -> Result {
+		auto printer = ErrorPrinter{*this};
+		std::format_to(std::back_inserter(printer.str), "missing {}\n", name);
+		return Result::MissingArgument;
+	}
+
+	void append_error_prefix(std::string& out) const { std::format_to(std::back_inserter(out), "{} {}: ", exe_name, id); }
+	void append_helpline(std::string& out) const { std::format_to(std::back_inserter(out), "Try '{} {} --help' for more information.", exe_name, id); }
+
+	struct ErrorPrinter {
+		ErrorPrinter(ErrorPrinter const&) = delete;
+		ErrorPrinter(ErrorPrinter&&) = delete;
+		auto operator=(ErrorPrinter const&) = delete;
+		auto operator=(ErrorPrinter&&) = delete;
+
+		explicit ErrorPrinter(Impl const& impl, std::size_t const reserved = 200) : impl(impl), str(make_string(reserved)) { impl.append_error_prefix(str); }
+
+		~ErrorPrinter() {
+			if (!append_helpline) { return; }
+			impl.append_helpline(str);
+			std::cerr << str << "\n";
+		}
+
+		bool append_helpline{true};
+
+		Impl const& impl; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+		std::string str;
+	};
 };
 
 void Command::Deleter::operator()(Impl* ptr) const noexcept { std::default_delete<Impl>{}(ptr); }
@@ -267,38 +313,24 @@ void Command::Deleter::operator()(Impl* ptr) const noexcept { std::default_delet
 Command::Command() : m_impl(new Impl) {}
 
 void Command::print_usage() const {
-	if (!m_impl) { return; }
+	assert(m_impl);
 	m_impl->print_usage();
 }
 
 void Command::print_help() const {
-	if (!m_impl) { return; }
+	assert(m_impl);
 	m_impl->print_help();
 }
 
-auto Command::parse_args(std::string_view app_name, std::span<char const* const> args) -> Result {
-	if (!m_impl) { return Result::Failure; }
-	m_impl->app_name = app_name;
-	m_impl->args = args;
-	m_impl->id = get_id();
-	return m_impl->parse();
-}
-
-auto Command::should_execute() const -> bool {
-	if (!m_impl) { return false; }
-	return !m_impl->early_return;
-}
-
-void Command::bind_option(std::string_view const key, BindInfo info, bool const required) const {
+void Command::bind_option(std::string_view const key, BindInfo info) const {
 	if (m_impl == nullptr || key.empty()) { return; }
 	auto option = Impl::Option{
-		.key = key,
+		.key = OptionKey::make(key),
 		.name = info.name,
 		.description = info.description,
 		.binding = std::move(info.binding),
-		.required = required,
 	};
-	split_key_single(option.key, option.single);
+	option.print_key = get_print_key(option.key.letter, option.key.word);
 	m_impl->options.push_back(std::move(option));
 }
 
@@ -324,101 +356,166 @@ void Command::bind_argument(BindInfo info, bool const is_list) const {
 
 void Command::flag(bool& out, std::string_view const key, std::string_view const name, std::string_view const description) const {
 	auto binding = std::make_unique<Binding<bool>>(out);
-	bind_option(key, {std::move(binding), name, description}, false);
+	bind_option(key, {std::move(binding), name, description});
 }
+
+struct Instance::Impl {
+	CreateInfo const& info; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+	std::span<std::unique_ptr<Command> const> commands{};
+
+	std::string exe_name{};
+
+	auto run(int argc, char const* const* argv) -> Result {
+		auto args = std::span{argv, static_cast<std::size_t>(argc)};
+		if (set_exe_name(args)) { args = args.subspan(1); }
+
+		auto const print_help_and_exit = [this] {
+			print_help();
+			return Result::Success;
+		};
+
+		auto scanner = Scanner{args};
+		if (!scanner.next()) { return print_help_and_exit(); }
+
+		switch (scanner.get_token_type()) {
+		case TokenType::Argument: return run_command(scanner.get_value(), scanner);
+		case TokenType::Option: return parse_option(scanner);
+		default: return print_help_and_exit();
+		}
+	}
+
+	auto set_exe_name(std::span<char const* const> args) -> bool {
+		if (args.empty()) { return false; }
+		exe_name = fs::path{args.front()}.filename().string();
+		return true;
+	}
+
+	[[nodiscard]] auto parse_option(Scanner& scanner) const -> Result {
+		switch (scanner.get_option_type()) {
+		case OptionType::Letters: {
+			auto input = char{};
+			scanner.next_letter(input);
+			return invalid_option(input);
+		}
+		case OptionType::Word: {
+			auto const input = scanner.get_key();
+			if (!try_builtin(input)) { return unrecognized_option(input); }
+			return Result::Success;
+		}
+		default: return Result::InvalidOption;
+		}
+	}
+
+	[[nodiscard]] auto run_command(std::string_view const id, Scanner const& scanner) const -> Result {
+		auto const find_command = [id](auto const& command) { return command->get_id() == id; };
+		auto const it = std::ranges::find_if(commands, find_command);
+		if (it == commands.end()) { return unrecognized_command(id); }
+
+		auto const& command = *it;
+		auto result = parse_command_args(*command, scanner.get_args());
+		if (result != Result::Success || command->m_impl->early_return) { return result; }
+
+		result = command->execute();
+		if (result != Result::Success) { command->print_usage(); }
+		return result;
+	}
+
+	[[nodiscard]] auto parse_command_args(Command& command, std::span<char const* const> args) const -> Result {
+		command.m_impl->id = command.get_id();
+		command.m_impl->exe_name = exe_name;
+		command.m_impl->args = args;
+		return command.m_impl->parse();
+	}
+
+	void print_help() const {
+		struct Option {
+			std::string_view word{};
+			std::string_view description{};
+		};
+		static constexpr auto options = std::array{
+			Option{"--help", "Print this help text"},
+			Option{"--version", "Print the app version"},
+		};
+		static constexpr auto width = get_max_width(options, [](auto const& option) { return option.word; }) + 4;
+
+		auto str = std::ostringstream{};
+		str << std::left;
+		str << info.tagline << "\n\n";
+		str << "  " << exe_name << " [OPTION]\n  " << exe_name << " [COMMAND] [...]\n\nOPTIONS\n";
+		for (auto const option : options) { str << "  " << std::setw(static_cast<int>(width)) << option.word << option.description << "\n"; }
+		std::cout << str.str() << "\nCOMMANDS\n";
+		print_command_list();
+		if (!info.epilogue.empty()) { std::cout << info.epilogue << "\n"; }
+	}
+
+	void print_command_list() const {
+		auto const width = get_max_width(commands, [](auto const& command) { return command->get_id(); }) + 4;
+		auto str = std::ostringstream{};
+		str << std::left;
+		for (auto const& cmd : commands) { str << "  " << std::setw(static_cast<int>(width)) << cmd->get_id() << cmd->get_tagline() << "\n"; }
+		std::cout << str.str();
+	}
+
+	[[nodiscard]] auto try_builtin(std::string_view const input) const -> bool {
+		if (input == "help") {
+			print_help();
+			return true;
+		}
+		if (input == "version") {
+			std::cout << info.version << "\n";
+			return true;
+		}
+		return false;
+	}
+
+	[[nodiscard]] auto invalid_option(char const input) const -> Result {
+		auto printer = ErrorPrinter{*this};
+		std::format_to(std::back_inserter(printer.str), "invalid option -- '{}'\n", input);
+		return Result::InvalidOption;
+	}
+
+	[[nodiscard]] auto unrecognized_option(std::string_view const input) const -> Result {
+		auto printer = ErrorPrinter{*this};
+		std::format_to(std::back_inserter(printer.str), "unrecognized option '--{}'\n", input);
+		return Result::InvalidOption;
+	}
+
+	[[nodiscard]] auto unrecognized_command(std::string_view const input) const -> Result {
+		auto printer = ErrorPrinter{*this};
+		std::format_to(std::back_inserter(printer.str), "unrecognized command '{}'\n", input);
+		return Result::InvalidCommand;
+	}
+
+	struct ErrorPrinter {
+		ErrorPrinter(ErrorPrinter const&) = delete;
+		ErrorPrinter(ErrorPrinter&&) = delete;
+		auto operator=(ErrorPrinter const&) = delete;
+		auto operator=(ErrorPrinter&&) = delete;
+
+		explicit ErrorPrinter(Impl const& impl, std::size_t const reserved = 200) : impl(impl), str(make_string(reserved)) { append_error_prefix(); }
+
+		~ErrorPrinter() {
+			if (!helpline) { return; }
+			append_helpline();
+			std::cerr << str << "\n";
+		}
+
+		void append_error_prefix() { std::format_to(std::back_inserter(str), "{}: ", impl.exe_name); }
+		void append_helpline() { std::format_to(std::back_inserter(str), "Try '{} --help' for more information.", impl.exe_name); }
+
+		bool helpline{true};
+
+		Impl const& impl; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+		std::string str;
+	};
+};
 
 void Instance::add_command(std::unique_ptr<Command> command) {
 	if (!command) { return; }
 	m_commands.push_back(std::move(command));
 }
 
-auto Instance::run(int argc, char const* const* argv) -> Result {
-	auto args = std::span{argv, static_cast<std::size_t>(argc)};
-	auto arg0 = std::string_view{};
-	if (!args.empty()) {
-		arg0 = args.front();
-		args = args.subspan(1);
-	}
-
-	m_app_name = "<app_name>";
-	if (!arg0.empty()) { m_app_name = fs::path{arg0}.filename().string(); }
-
-	auto const missing_command = [this] {
-		missing_required(Result::MissingArgument, "command");
-		print_usage();
-		return Result::MissingCommand;
-	};
-
-	auto scanner = Scanner{args};
-	if (!scanner.next()) { return missing_command(); }
-
-	switch (scanner.get_token_type()) {
-	case TokenType::Argument: break;
-	case TokenType::Option: {
-		if (try_builtin(scanner.get_key())) { return Result::Success; }
-		return invalid_arg(m_app_name, scanner.get_key());
-	}
-	default: return missing_command();
-	}
-
-	std::string_view const id = scanner.get_value();
-	auto const find_command = [id](auto const& command) { return command->get_id() == id; };
-	auto const it = std::ranges::find_if(m_commands, find_command);
-	if (it == m_commands.end()) {
-		invalid_arg("command", id);
-		print_usage();
-		return Result::InvalidArgument;
-	}
-
-	auto const& command = *it;
-	if (auto const result = command->parse_args(m_app_name, scanner.get_args()); result != Result::Success) { return result; }
-	if (!command->should_execute()) { return Result::Success; }
-
-	auto const result = command->execute();
-	if (result != Result::Success) { command->print_usage(); }
-	return result;
-}
-
-auto Instance::try_builtin(std::string_view const input) const -> bool {
-	if (input == "help") {
-		print_help();
-		return true;
-	}
-	if (input == "usage") {
-		print_usage();
-		return true;
-	}
-	if (input == "version") {
-		std::cout << m_version << "\n";
-		return true;
-	}
-	return false;
-}
-
-void Instance::print_help() const {
-	std::cout << m_tagline << "\n\n";
-	static constexpr std::string_view options_v[] = {"--help", "--usage", "--version"};
-	std::cout << std::format("  {} [OPTION]\n  {} [COMMAND] [...]\n\nOPTIONS\n{:>10}\n\nCOMMANDS\n", m_app_name, m_app_name, "--help");
-	print_command_list();
-}
-
-void Instance::print_usage() const { std::cout << std::format("Usage: {} [--help|--usage|--version|COMMAND]\n", m_app_name); }
-
-void Instance::print_command_list() const {
-	// auto printer = TabPrinter{std::cout};
-	// printer.tab_size = 4;
-	// for (auto const& cmd : m_commands) { printer.next_column(cmd->get_id()).next_column(cmd->get_tagline()).next_row(); }
-
-	auto const width = get_max_width(m_commands, [](auto const& command) { return command->get_id(); }) + 2;
-	auto str = std::stringstream{};
-	str << std::left;
-	for (auto const& cmd : m_commands) { str << "  " << std::setw(static_cast<int>(width)) << cmd->get_id() << cmd->get_tagline() << "\n"; }
-	std::cout << str.str() << "\n";
-
-	// auto str = std::string{};
-	// for (auto const& cmd : m_commands) { std::format_to(std::back_inserter(str), "\t{}\t{}\n", cmd->get_id(), cmd->get_tagline()); }
-	// std::cout << str;
-}
+auto Instance::run(int argc, char const* const* argv) -> Result { return Impl{.info = m_info, .commands = m_commands}.run(argc, argv); }
 } // namespace cliqr
 
 namespace cliqr {
@@ -432,8 +529,8 @@ struct Foo : Command {
 	explicit Foo() {
 		flag(test, "t", "test", "test flag");
 		optional(count, "c,count", "count", "test int");
-		argument(path, "path", "test path");
-		arguments(paths, "paths", "test paths");
+		required(path, "path", "test path");
+		list(paths, "paths", "test paths");
 	}
 
 	[[nodiscard]] auto get_id() const -> std::string_view final { return "foo"; }
@@ -455,8 +552,12 @@ struct LongCommand : Command {
 };
 } // namespace
 
-auto lab(int const argc, char const* const argv[]) -> int {
-	auto context = cliqr::Instance{"cliqr lab (test bench)", "cliqr lab\nv0.0"};
+auto lab(int const argc, char const* const* argv) -> int {
+	auto const create_info = cliqr::CreateInfo{
+		.tagline = "cliqr lab (test bench)",
+		.version = "cliqr lab\nv0.0",
+	};
+	auto context = cliqr::Instance{create_info};
 	context.add_command(std::make_unique<Foo>());
 	context.add_command(std::make_unique<LongCommand>());
 	return static_cast<int>(context.run(argc, argv));

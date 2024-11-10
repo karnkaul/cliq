@@ -13,13 +13,28 @@ concept StringyT = std::same_as<Type, std::string> || std::same_as<Type, std::st
 template <typename Type>
 concept NumberT = std::integral<Type> || std::floating_point<Type>;
 
+template <typename Type>
+concept NotBoolT = !std::same_as<Type, bool>;
+
+/// \brief Interface for binding options and arguments to variables.
 class IBinding : Polymorphic {
   public:
+	/// \brief Check if the binding a flag.
+	/// Flags can be entered as concatenated letters, thus such bindings must not require a value for assignment.
+	/// \returns true if flag.
 	[[nodiscard]] virtual auto is_flag() const -> bool = 0;
+
+	/// \brief Assign an argument to the bound parameter.
+	/// \param value Argument to bind.
+	/// \returns true if successful.
 	[[nodiscard]] virtual auto assign_argument(std::string_view value) const -> bool = 0;
+
+	/// \brief Append the default value of the bound parameter.
+	/// \param out String to append to.
 	virtual void append_default_value(std::string& out) const = 0;
 };
 
+/// \brief Customization point.
 template <typename Type>
 class Binding;
 
@@ -79,6 +94,7 @@ class Binding<Type> : public IBinding {
 	}
 };
 
+/// \brief Binding for an arbitary number of arguments.
 template <typename Type>
 class ListBinding : public IBinding {
   public:

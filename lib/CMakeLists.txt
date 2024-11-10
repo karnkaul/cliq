@@ -19,8 +19,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 
 target_sources(${PROJECT_NAME} PRIVATE
   src/cliqr.cpp
-  src/printer.cpp
-  src/printer.hpp
   src/scanner.hpp
   src/token.hpp
 )

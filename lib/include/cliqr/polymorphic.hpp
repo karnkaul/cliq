@@ -1,6 +1,7 @@
 #pragma once
 
 namespace cliqr {
+/// \brief Base class for polymorphic types.
 class Polymorphic {
   public:
 	Polymorphic(Polymorphic const&) = default;

@@ -1,8 +1,8 @@
 #pragma once
 #include <cliqr/polymorphic.hpp>
-#include <array>
 #include <charconv>
 #include <concepts>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -29,9 +29,16 @@ class IBinding : Polymorphic {
 	/// \returns true if successful.
 	[[nodiscard]] virtual auto assign_argument(std::string_view value) const -> bool = 0;
 
-	/// \brief Append the default value of the bound parameter.
-	/// \param out String to append to.
-	virtual void append_default_value(std::string& out) const = 0;
+	/// \brief Get the default value of the bound parameter.
+	/// \returns Default value of bound parameter.
+	[[nodiscard]] virtual auto get_default_value() const -> std::string = 0;
+};
+
+/// \brief Used for custom bindings.
+struct BindInfo {
+	std::unique_ptr<IBinding> binding{};
+	std::string_view name{};
+	std::string_view description{};
 };
 
 /// \brief Customization point.
@@ -52,7 +59,7 @@ class Binding<bool> : public IBinding {
 		return true;
 	}
 
-	void append_default_value(std::string& out) const final { out += (ref ? "true" : "false"); }
+	[[nodiscard]] auto get_default_value() const -> std::string final { return ref ? "true" : "false"; }
 };
 
 template <StringyT Type>
@@ -69,7 +76,7 @@ class Binding<Type> : public IBinding {
 		return true;
 	}
 
-	void append_default_value(std::string& out) const final { out += ref; }
+	[[nodiscard]] auto get_default_value() const -> std::string final { return std::string{ref}; }
 };
 
 template <NumberT Type>
@@ -87,11 +94,7 @@ class Binding<Type> : public IBinding {
 		return ec == std::errc{} && ptr == end;
 	}
 
-	void append_default_value(std::string& out) const final {
-		auto buf = std::array<char, 16>{};
-		std::to_chars(buf.data(), buf.data() + buf.size(), ref);
-		out += buf.data();
-	}
+	[[nodiscard]] auto get_default_value() const -> std::string final { return std::to_string(ref); }
 };
 
 /// \brief Binding for an arbitary number of arguments.
@@ -111,6 +114,6 @@ class ListBinding : public IBinding {
 		return true;
 	}
 
-	void append_default_value(std::string& out) const final { out += "..."; }
+	[[nodiscard]] auto get_default_value() const -> std::string final { return "..."; }
 };
 } // namespace cliqr

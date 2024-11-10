@@ -19,13 +19,16 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 
 target_sources(${PROJECT_NAME} PRIVATE
   src/cliqr.cpp
+  src/parser.cpp
+  src/parser.hpp
   src/scanner.hpp
+  src/storage.cpp
+  src/storage.hpp
   src/token.hpp
 )
 
 target_sources(${PROJECT_NAME} PUBLIC FILE_SET HEADERS BASE_DIRS include FILES
   include/cliqr/binding.hpp
-  include/cliqr/cliqr.hpp
   include/cliqr/command.hpp
   include/cliqr/instance.hpp
   include/cliqr/polymorphic.hpp

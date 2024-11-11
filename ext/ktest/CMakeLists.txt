@@ -1,15 +1,11 @@
 cmake_minimum_required(VERSION 3.23)
 
-project(cliq VERSION "0.1.0")
+project(ktest VERSION "0.1.0")
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_DEBUG_POSTFIX "-d")
-
-option(CLIQ_BUILD_EXAMPLES "Build cliq examples" ${PROJECT_IS_TOP_LEVEL})
-option(CLIQ_BUILD_TESTS "Build cliq tests" ${PROJECT_IS_TOP_LEVEL})
-option(CLIQ_INSTALL "Setup CMake install for ${PROJECT_NAME}" ${PROJECT_IS_TOP_LEVEL})
 
 add_library(${PROJECT_NAME}-compile-options INTERFACE)
 add_library(${PROJECT_NAME}::${PROJECT_NAME}-compile-options ALIAS ${PROJECT_NAME}-compile-options)
@@ -21,14 +17,4 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL Clang OR CMAKE_CXX_COMPILER_ID STREQUAL GNU)
 endif()
 
 add_subdirectory(lib)
-
-if(CLIQ_BUILD_EXAMPLES)
-  add_subdirectory(examples)
-endif()
-
-if(CLIQ_BUILD_TESTS)
-  enable_testing()
-  add_subdirectory(ext/ktest)
-
-  add_subdirectory(tests)
-endif()
+add_subdirectory(main)

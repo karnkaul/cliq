@@ -38,7 +38,6 @@ jobs:
         run: cd clang && ctest -C Debug
       - name: test clang release
         run: cd clang && ctest -C Release
-
   build-windows:
     runs-on: windows-latest
     steps:

@@ -8,6 +8,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_DEBUG_POSTFIX "-d")
 
 option(CLIQ_BUILD_EXAMPLES "Build cliq examples" ${PROJECT_IS_TOP_LEVEL})
+option(CLIQ_BUILD_TESTS "Build cliq tests" ${PROJECT_IS_TOP_LEVEL})
 option(CLIQ_INSTALL "Setup CMake install for ${PROJECT_NAME}" ${PROJECT_IS_TOP_LEVEL})
 
 add_library(${PROJECT_NAME}-compile-options INTERFACE)
@@ -23,4 +24,11 @@ add_subdirectory(lib)
 
 if(CLIQ_BUILD_EXAMPLES)
   add_subdirectory(examples)
+endif()
+
+if(CLIQ_BUILD_TESTS)
+  enable_testing()
+  add_subdirectory(ext)
+
+  add_subdirectory(tests)
 endif()

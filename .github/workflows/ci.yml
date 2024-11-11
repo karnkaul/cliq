@@ -30,6 +30,14 @@ jobs:
         run: cmake --build clang --config=Debug
       - name: build clang release
         run: cmake --build clang --config=Release
+      - name: test gcc debug
+        run: cd build && ctest -C Debug
+      - name: test gcc release
+        run: cd build && ctest -C Release
+      - name: test clang debug
+        run: cd clang && ctest -C Debug
+      - name: test clang release
+        run: cd clang && ctest -C Release
   build-windows:
     runs-on: windows-latest
     steps:
@@ -40,16 +48,7 @@ jobs:
         run: cmake --build build --config=Debug
       - name: build release
         run: cmake --build build --config=Release
-  build-macos:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: init
-        run: brew install ninja
-      - name: configure
-        run: cmake -S . --preset=default -B build
-      - name: build debug
-        run: cmake --build build --config=Debug
-      - name: build release
-        run: cmake --build build --config=Release
-
+      - name: test debug
+        run: cd build && ctest -C Debug
+      - name: test release
+        run: cd build && ctest -C Release

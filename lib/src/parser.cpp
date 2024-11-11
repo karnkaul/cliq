@@ -37,7 +37,7 @@ ErrorPrinter::~ErrorPrinter() {
 auto ErrorPrinter::invalid_value(std::string_view const option, std::string_view value) -> Result {
 	helpline = false;
 	std::format_to(std::back_inserter(str), "invalid {}: '{}'\n", option, value);
-	return ParseError::InvalidValue;
+	return ParseError::InvalidArgument;
 }
 
 auto ErrorPrinter::invalid_option(char const letter) -> Result {

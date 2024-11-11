@@ -18,8 +18,7 @@ class Scanner {
 
 	[[nodiscard]] constexpr auto peek() const -> TokenType { return m_next.token_type; }
 
-	[[nodiscard]] constexpr auto get_token() const -> Token const& { return m_current.token; }
-	[[nodiscard]] constexpr auto get_token_type() const -> TokenType { return get_token().token_type; }
+	[[nodiscard]] constexpr auto get_token_type() const -> TokenType { return m_current.token.token_type; }
 	[[nodiscard]] constexpr auto get_option_type() const -> OptionType { return m_current.token.option_type; }
 
 	[[nodiscard]] constexpr auto get_key() const -> std::string_view { return m_current.key; }

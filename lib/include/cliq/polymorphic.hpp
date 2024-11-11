@@ -1,6 +1,6 @@
 #pragma once
 
-namespace cliqr {
+namespace cliq {
 /// \brief Base class for polymorphic types.
 class Polymorphic {
   public:
@@ -12,4 +12,4 @@ class Polymorphic {
 	Polymorphic() = default;
 	virtual ~Polymorphic() = default;
 };
-} // namespace cliqr
+} // namespace cliq

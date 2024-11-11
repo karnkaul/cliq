@@ -1,9 +1,13 @@
 #include <storage.hpp>
 #include <format>
 
-namespace cliqr {
+namespace cliq {
 Builtin::Builtin(std::string_view const word, std::string_view const description)
 	: word(word), description(description), print_key(Storage::get_print_key({}, word)) {}
+
+auto Builtin::usage() -> Builtin { return Builtin{"usage", "display usage"}; }
+auto Builtin::help() -> Builtin { return Builtin{"help", "display this help and exit"}; }
+auto Builtin::version() -> Builtin { return Builtin{"version", "output version information and exit"}; }
 
 auto Storage::get_print_key(char const letter, std::string_view const word) -> std::string {
 	auto ret = std::string(4, ' ');
@@ -46,4 +50,4 @@ void Storage::bind_argument(BindInfo info, bool const is_list) {
 	std::string_view const suffix = is_list ? "..." : "";
 	std::format_to(std::back_inserter(args_text), " {}{}", info.name, suffix);
 }
-} // namespace cliqr
+} // namespace cliq

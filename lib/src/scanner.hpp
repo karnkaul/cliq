@@ -2,7 +2,7 @@
 #include <token.hpp>
 #include <span>
 
-namespace cliqr {
+namespace cliq {
 class Scanner {
   public:
 	explicit constexpr Scanner(std::span<char const* const> args) : m_args(args) {
@@ -60,6 +60,7 @@ class Scanner {
 	}
 
 	constexpr void set_key_value() {
+		m_current.key = m_current.value = {};
 		if (m_current.token.token_type == TokenType::Option) {
 			m_current.key = m_current.token.value;
 			auto const eq = m_current.key.find_first_of('=');
@@ -81,4 +82,4 @@ class Scanner {
 	} m_current{};
 	Token m_next{};
 };
-} // namespace cliqr
+} // namespace cliq

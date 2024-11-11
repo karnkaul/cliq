@@ -1,12 +1,12 @@
 #pragma once
-#include <cliqr/polymorphic.hpp>
+#include <cliq/polymorphic.hpp>
 #include <charconv>
 #include <concepts>
 #include <memory>
 #include <string>
 #include <vector>
 
-namespace cliqr {
+namespace cliq {
 template <typename Type>
 concept StringyT = std::same_as<Type, std::string> || std::same_as<Type, std::string_view>;
 
@@ -48,7 +48,7 @@ class Binding;
 template <>
 class Binding<bool> : public IBinding {
   public:
-	bool& ref; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+	bool& ref;
 
 	explicit Binding(bool& out) : ref(out) {}
 
@@ -65,7 +65,7 @@ class Binding<bool> : public IBinding {
 template <StringyT Type>
 class Binding<Type> : public IBinding {
   public:
-	Type& ref; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+	Type& ref;
 
 	explicit Binding(Type& out) : ref(out) {}
 
@@ -82,7 +82,7 @@ class Binding<Type> : public IBinding {
 template <NumberT Type>
 class Binding<Type> : public IBinding {
   public:
-	Type& ref; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+	Type& ref;
 
 	explicit Binding(Type& out) : ref(out) {}
 
@@ -101,7 +101,7 @@ class Binding<Type> : public IBinding {
 template <typename Type>
 class ListBinding : public IBinding {
   public:
-	std::vector<Type>& ref; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+	std::vector<Type>& ref;
 
 	explicit ListBinding(std::vector<Type>& out) : ref(out) {}
 
@@ -116,4 +116,4 @@ class ListBinding : public IBinding {
 
 	[[nodiscard]] auto get_default_value() const -> std::string final { return "..."; }
 };
-} // namespace cliqr
+} // namespace cliq

@@ -18,7 +18,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 )
 
 target_sources(${PROJECT_NAME} PRIVATE
-  src/cliqr.cpp
+  src/cliq.cpp
   src/parser.cpp
   src/parser.hpp
   src/scanner.hpp
@@ -28,10 +28,15 @@ target_sources(${PROJECT_NAME} PRIVATE
 )
 
 target_sources(${PROJECT_NAME} PUBLIC FILE_SET HEADERS BASE_DIRS include FILES
-  include/cliqr/binding.hpp
-  include/cliqr/command.hpp
-  include/cliqr/instance.hpp
-  include/cliqr/polymorphic.hpp
+  include/cliq/app_info.hpp
+  include/cliq/app.hpp
+  include/cliq/binding.hpp
+  include/cliq/command.hpp
+  include/cliq/polymorphic.hpp
+)
+
+target_sources(${PROJECT_NAME} PUBLIC FILE_SET HEADERS BASE_DIRS "${CMAKE_CURRENT_BINARY_DIR}/include" FILES
+  "${CMAKE_CURRENT_BINARY_DIR}/include/cliq/build_version.hpp"
 )
 
 get_target_property(sources ${PROJECT_NAME} SOURCES)

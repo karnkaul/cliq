@@ -1,12 +1,13 @@
 #pragma once
-#include <cliqr/binding.hpp>
-#include <cliqr/result.hpp>
+#include <cliq/binding.hpp>
+#include <cliq/build_version.hpp>
+#include <cliq/result.hpp>
 
-namespace cliqr {
-/// \brief Abstract base for customizable commands.
+namespace cliq {
+/// \brief Abstract base for executable commands with bound options and arguments.
 class Command : public Polymorphic {
   public:
-	using Result = cliqr::Result;
+	using Result = cliq::Result;
 
 	explicit Command();
 
@@ -14,9 +15,13 @@ class Command : public Polymorphic {
 	/// \returns ID of this command.
 	[[nodiscard]] virtual auto get_id() const -> std::string_view = 0;
 
-	/// \brief Get the help tagline for this command.
-	/// \returns Tagline for this command.
-	[[nodiscard]] virtual auto get_tagline() const -> std::string_view = 0;
+	/// \brief Get the help description for this command.
+	/// \returns Help description for this command.
+	[[nodiscard]] virtual auto get_description() const -> std::string_view { return get_id(); }
+
+	/// \brief Get the help epilogue for this command.
+	/// \returns Help epilogue for this command.
+	[[nodiscard]] virtual auto get_epilogue() const -> std::string_view { return {}; }
 
 	/// \brief Execute this command.
 	/// \returns Result of execution.
@@ -78,6 +83,7 @@ class Command : public Polymorphic {
 
 	std::unique_ptr<Impl, Deleter> m_impl{};
 
-	friend class Instance;
+	friend class CommandApp;
+	friend class CommandListApp;
 };
-} // namespace cliqr
+} // namespace cliq

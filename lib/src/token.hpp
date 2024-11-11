@@ -1,7 +1,7 @@
 #pragma once
 #include <string_view>
 
-namespace cliqr {
+namespace cliq {
 enum class TokenType {
 	None,
 	Option,	  // -[-][A-z]+[=[A-z]+]
@@ -42,9 +42,9 @@ constexpr auto to_token(std::string_view const input) -> Token {
 	}
 	return ret;
 }
-} // namespace cliqr
+} // namespace cliq
 
-namespace cliqr::tests {
+namespace cliq::tests {
 static_assert([] {
 	auto const token = to_token("--");
 	return token.token_type == TokenType::OptEnd && token.value.empty();
@@ -64,5 +64,5 @@ static_assert([] {
 	auto const token = to_token("--bar=123");
 	return token.token_type == TokenType::Option && token.option_type == OptionType::Word && token.value == "bar=123";
 }());
-} // namespace cliqr::tests
+} // namespace cliq::tests
 // tests

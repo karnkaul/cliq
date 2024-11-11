@@ -4,7 +4,7 @@
 #include <iomanip>
 #include <iostream>
 
-namespace cliqr {
+namespace cliq {
 namespace {
 template <typename ContainerT, typename GetStringT>
 constexpr auto get_max_width(ContainerT&& container, GetStringT get_string) -> std::size_t {
@@ -24,38 +24,38 @@ constexpr auto get_max_width(ContainerT&& container, GetStringT get_string) -> s
 }
 } // namespace
 
-Parser::ErrorPrinter::ErrorPrinter(std::string_view exe_name, std::string_view cmd_id) : exe_name(exe_name), cmd_id(cmd_id) {
+ErrorPrinter::ErrorPrinter(std::string_view exe_name, std::string_view cmd_id) : exe_name(exe_name), cmd_id(cmd_id) {
 	str.reserve(400);
 	append_error_prefix();
 }
 
-Parser::ErrorPrinter::~ErrorPrinter() {
+ErrorPrinter::~ErrorPrinter() {
 	if (helpline) { append_helpline(); }
 	std::cerr << str;
 }
 
-auto Parser::ErrorPrinter::invalid_value(std::string_view const option, std::string_view value) -> Result {
+auto ErrorPrinter::invalid_value(std::string_view const option, std::string_view value) -> Result {
 	helpline = false;
 	std::format_to(std::back_inserter(str), "invalid {}: '{}'\n", option, value);
 	return ParseError::InvalidValue;
 }
 
-auto Parser::ErrorPrinter::invalid_option(char const letter) -> Result {
+auto ErrorPrinter::invalid_option(char const letter) -> Result {
 	std::format_to(std::back_inserter(str), "invalid option -- '{}'\n", letter);
 	return ParseError::InvalidOption;
 }
 
-auto Parser::ErrorPrinter::unrecognized_option(std::string_view const input) -> Result {
+auto ErrorPrinter::unrecognized_option(std::string_view const input) -> Result {
 	std::format_to(std::back_inserter(str), "unrecognized option '--{}'\n", input);
 	return ParseError::InvalidOption;
 }
 
-auto Parser::ErrorPrinter::unrecognized_command(std::string_view const input) -> Result {
+auto ErrorPrinter::unrecognized_command(std::string_view const input) -> Result {
 	std::format_to(std::back_inserter(str), "unrecognized command '{}'\n", input);
 	return ParseError::InvalidCommand;
 }
 
-auto Parser::ErrorPrinter::option_requires_argument(std::string_view const input) -> Result {
+auto ErrorPrinter::option_requires_argument(std::string_view const input) -> Result {
 	if (input.size() == 1) {
 		std::format_to(std::back_inserter(str), "option requires an argument -- '{}'\n", input);
 	} else {
@@ -64,24 +64,25 @@ auto Parser::ErrorPrinter::option_requires_argument(std::string_view const input
 	return ParseError::MissingArgument;
 }
 
-auto Parser::ErrorPrinter::missing_argument(std::string_view const name) -> Result {
+auto ErrorPrinter::missing_argument(std::string_view const name) -> Result {
 	std::format_to(std::back_inserter(str), "missing {}\n", name);
 	return ParseError::MissingArgument;
 }
 
-void Parser::ErrorPrinter::append_error_prefix() {
+void ErrorPrinter::append_error_prefix() {
 	str += exe_name;
 	if (!cmd_id.empty()) { std::format_to(std::back_inserter(str), " {}", cmd_id); }
 	str += ": ";
 }
 
-void Parser::ErrorPrinter::append_helpline() {
+void ErrorPrinter::append_helpline() {
 	std::format_to(std::back_inserter(str), "Try '{}", exe_name);
 	if (!cmd_id.empty()) { std::format_to(std::back_inserter(str), " {}", cmd_id); }
 	str += " --help' for more information.\n";
 }
 
-auto Parser::HelpText::append_to(std::ostream& out) const -> std::ostream& {
+auto HelpText::append_to(std::ostream& out) const -> std::ostream& {
+	if (!storage.exec_info.description.empty()) { out << storage.exec_info.description << "\n"; }
 	auto const options_width = get_max_width(storage.options, [](auto const& option) -> std::string_view { return option.print_key; });
 	auto const builtin_width = get_max_width(storage.builtins, [](auto const& builtin) { return builtin.print_key; });
 	auto width = std::max(options_width, builtin_width) + 4;
@@ -103,15 +104,15 @@ auto Parser::HelpText::append_to(std::ostream& out) const -> std::ostream& {
 		width = get_max_width(storage.commands, [](auto const& command) { return command->get_id(); }) + 4;
 		out << "\nCOMMANDS\n" << std::left;
 		for (auto const& command : storage.commands) {
-			out << "  " << std::setw(static_cast<int>(width)) << command->get_id() << command->get_tagline() << "\n";
+			out << "  " << std::setw(static_cast<int>(width)) << command->get_id() << command->get_description() << "\n";
 		}
 	}
-	if (!epilogue.empty()) { out << "\n" << epilogue << "\n"; }
+	if (!storage.exec_info.epilogue.empty()) { out << "\n" << storage.exec_info.epilogue << "\n"; }
 	out << std::right;
 	return out;
 }
 
-auto Parser::UsageText::append_to(std::ostream& out) const -> std::ostream& {
+auto UsageText::append_to(std::ostream& out) const -> std::ostream& {
 	out << "Usage: " << exe_name << " ";
 	if (!cmd_id.empty()) { out << cmd_id << " "; }
 	for (auto const& option : storage.options) {
@@ -134,11 +135,10 @@ void Parser::initialize(std::string_view const exe_name, std::string_view const 
 	m_cmd_id = cmd_id;
 }
 
-void Parser::print_help(Storage const& storage, std::string_view const epilogue) const {
+void Parser::print_help(Storage const& storage) const {
 	auto const help_text = HelpText{
 		.exe_name = m_exe_name,
 		.cmd_id = m_cmd_id,
-		.epilogue = epilogue,
 		.storage = storage,
 	};
 	std::cout << help_text;
@@ -153,7 +153,7 @@ void Parser::print_usage(Storage const& storage) const {
 	std::cout << usage_text << "\n";
 }
 
-void Parser::print_version(std::string_view const version_string) { std::cout << version_string << "\n"; }
+void Parser::print_version(Storage const& storage) { std::cout << storage.exec_info.version << "\n"; }
 
 auto Parser::option_requires_argument(std::string_view const input) const -> Result {
 	return ErrorPrinter{m_exe_name, m_cmd_id}.option_requires_argument(input);
@@ -236,7 +236,7 @@ auto Parser::get_value_for(std::string_view const input, Option const& option, s
 		return success_v;
 	}
 
-	if (scanner.peek() == TokenType::Argument) {
+	if (out_value.empty() && scanner.peek() == TokenType::Argument) {
 		scanner.next();
 		out_value = scanner.get_value();
 	}
@@ -248,4 +248,4 @@ auto Parser::get_value_for(std::string_view const input, Option const& option, s
 	if (!option.binding->assign_argument(value)) { return invalid_value(option.name, value); }
 	return success_v;
 }
-} // namespace cliqr
+} // namespace cliq

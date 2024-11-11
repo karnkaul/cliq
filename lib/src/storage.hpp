@@ -1,8 +1,9 @@
 #pragma once
-#include <cliqr/command.hpp>
+#include <cliq/app_info.hpp>
+#include <cliq/command.hpp>
 #include <optional>
 
-namespace cliqr {
+namespace cliq {
 struct OptionKey {
 	char letter{};
 	std::string_view word{};
@@ -49,7 +50,13 @@ struct Builtin {
 	std::string print_key{};
 
 	explicit Builtin(std::string_view word, std::string_view description);
+
+	[[nodiscard]] static auto usage() -> Builtin;
+	[[nodiscard]] static auto help() -> Builtin;
+	[[nodiscard]] static auto version() -> Builtin;
 };
+
+using ExecInfo = AppInfo;
 
 struct Storage {
 	std::vector<Option> options{};
@@ -62,9 +69,11 @@ struct Storage {
 
 	std::vector<Builtin> builtins{};
 
+	ExecInfo exec_info{};
+
 	static auto get_print_key(char letter, std::string_view word) -> std::string;
 
 	void bind_option(BindInfo info, std::string_view key);
 	void bind_argument(BindInfo info, bool is_list);
 };
-} // namespace cliqr
+} // namespace cliq

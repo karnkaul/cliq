@@ -2,7 +2,7 @@
 #include <cstdlib>
 #include <optional>
 
-namespace cliqr {
+namespace cliq {
 /// \brief Error parsing passed arguments.
 enum class ParseError : int {
 	InvalidCommand,
@@ -21,8 +21,8 @@ class Result {
 	constexpr Result(ParseError parse_error) : m_parse_error(parse_error) {}
 	constexpr Result(ExecutedBuiltin const& /*executed_builtin*/) : m_executed_builtin(true) {}
 
-	/// \brief Check if cliqr executed a builtin option (like "--help")
-	/// \returns true if cliqr executed a builtin option.
+	/// \brief Check if cliq executed a builtin option (like "--help")
+	/// \returns true if cliq executed a builtin option.
 	[[nodiscard]] constexpr auto executed_builtin() const -> bool { return m_executed_builtin; }
 
 	/// \brief Get the command result.
@@ -33,9 +33,13 @@ class Result {
 	/// \returns Argument parsing error, if any.
 	[[nodiscard]] constexpr auto get_parse_error() const -> std::optional<ParseError> { return m_parse_error; }
 
-	/// \brief Get the return value for main.
+	/// \brief Get the return code for main.
 	/// \returns EXIT_FAILURE on parse error, otherwise the command result.
-	[[nodiscard]] constexpr auto get_return_value() const -> int { return m_parse_error ? EXIT_FAILURE : get_command_result(); }
+	[[nodiscard]] constexpr auto get_return_code() const -> int { return m_parse_error ? EXIT_FAILURE : get_command_result(); }
+
+	/// \brief Check if result should be returned early.
+	/// \returns true if a builtin was executed or a parse error occurred.
+	[[nodiscard]] constexpr auto early_return() const -> bool { return executed_builtin() || m_parse_error.has_value(); }
 
 	/// \brief Compare equality with another Result.
 	constexpr auto operator==(Result const& rhs) const {
@@ -54,4 +58,4 @@ class Result {
 inline constexpr auto success_v = Result{EXIT_SUCCESS};
 /// \brief Result representing generic failure.
 inline constexpr auto failure_v = Result{EXIT_FAILURE};
-} // namespace cliqr
+} // namespace cliq

@@ -1,5 +1,5 @@
 #include <string_view>
 
-namespace cliqr {
+namespace cliq {
 constexpr std::string_view version_v{"@PROJECT_VERSION@"};
 }

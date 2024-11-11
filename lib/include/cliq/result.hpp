@@ -7,7 +7,6 @@ namespace cliq {
 enum class ParseError : int {
 	InvalidCommand,
 	InvalidOption,
-	InvalidValue,
 	InvalidArgument,
 	MissingArgument,
 };

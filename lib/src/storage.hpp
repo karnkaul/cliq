@@ -8,7 +8,7 @@ struct OptionKey {
 	char letter{};
 	std::string_view word{};
 
-	static constexpr auto is_space(char const c) { return std::isspace(static_cast<unsigned char>(c)) != 0; }
+	static constexpr auto is_space(char const c) { return c == ' ' || c == '\t'; }
 
 	static constexpr void trim(std::string_view& out) {
 		while (is_space(out.front())) { out = out.substr(1); }

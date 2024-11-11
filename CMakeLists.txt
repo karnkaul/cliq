@@ -28,7 +28,7 @@ endif()
 
 if(CLIQ_BUILD_TESTS)
   enable_testing()
-  add_subdirectory(ext/ktest)
+  add_subdirectory(ext)
 
   add_subdirectory(tests)
 endif()

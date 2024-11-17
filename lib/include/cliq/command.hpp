@@ -31,25 +31,31 @@ class Command : public Polymorphic {
 	void print_help() const;
 
   protected:
+	enum class ArgType : int {
+		Required, // General positional argument
+		List,	  // Last positional argument: variadic
+		Implicit  // Last positional argument: optional
+	};
+
 	/// \brief Bind an option.
 	/// \param info Binding info.
 	/// \param key Key for the option.
 	void bind_option(BindInfo info, std::string_view key) const;
 	/// \brief Bind an argument.
 	/// \param info Binding info.
-	/// \param is_list Whether the binding is a list.
-	void bind_argument(BindInfo info, bool is_list) const;
+	/// \param type Argument type.
+	void bind_argument(BindInfo info, ArgType type) const;
 
-	/// \brief Bind a required argument. Uses Binding<Type>.
+	/// \brief Bind a required positional argument. Uses Binding<Type>.
 	/// \param out Parameter to bind to.
 	/// \param name Name of argument. Displayed in help / usage.
 	/// \param description Description of argument. Displayed in help / usage.
 	template <typename Type>
 	void required(Type& out, std::string_view const name, std::string_view const description) const {
-		bind_argument({std::make_unique<Binding<Type>>(out), name, description}, false);
+		bind_argument({std::make_unique<Binding<Type>>(out), name, description}, ArgType::Required);
 	}
 
-	/// \brief Bind an optional argument. Uses Binding<Type>.
+	/// \brief Bind an optional named argument. Uses Binding<Type>.
 	/// \param out Parameter to bind to.
 	/// \param key Key of option in the form of 'f,foo'. Use 'f' for letter-only, and 'foo' for word-only.
 	/// \param name Name of option. Displayed in help / usage.
@@ -66,13 +72,24 @@ class Command : public Polymorphic {
 	/// \param description Description of option. Displayed in help / usage.
 	void flag(bool& out, std::string_view key, std::string_view name, std::string_view description) const;
 
-	/// \brief Bind a list argument. Uses ListBinding<Type>.
+	/// \brief Bind the last positional arguments as a list. Uses ListBinding<Type>.
 	/// \param out Parameter to bind to.
 	/// \param name Name of argument. Displayed in help / usage.
 	/// \param description Description of argument. Displayed in help / usage.
+	/// Cannot bind any more positional arguments after this.
 	template <NotBoolT Type>
 	void list(std::vector<Type>& out, std::string_view const name, std::string_view const description) const {
-		bind_argument({std::make_unique<ListBinding<Type>>(out), name, description}, true);
+		bind_argument({std::make_unique<ListBinding<Type>>(out), name, description}, ArgType::List);
+	}
+
+	/// \brief Bind the last positional argument as optional/implicit.
+	/// \param out Parameter to bind to.
+	/// \param name Name of argument. Displayed in help / usage.
+	/// \param description Description of argument. Displayed in help / usage.
+	/// Cannot bind any more positional arguments after this.
+	template <NotBoolT Type>
+	void implicit(Type& out, std::string_view const name, std::string_view const description) const {
+		bind_argument({std::make_unique<Binding<Type>>(out), name, description}, ArgType::Implicit);
 	}
 
   private:

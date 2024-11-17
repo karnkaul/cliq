@@ -74,9 +74,9 @@ void Command::bind_option(BindInfo info, std::string_view const key) const {
 	m_impl->storage.bind_option(std::move(info), key);
 }
 
-void Command::bind_argument(BindInfo info, bool const is_list) const {
+void Command::bind_argument(BindInfo info, ArgType const type) const {
 	if (m_impl == nullptr) { return; }
-	m_impl->storage.bind_argument(std::move(info), is_list);
+	m_impl->storage.bind_argument(std::move(info), static_cast<Storage::ArgType>(type));
 }
 
 void Command::flag(bool& out, std::string_view const key, std::string_view const name, std::string_view const description) const {

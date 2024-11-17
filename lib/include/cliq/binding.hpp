@@ -76,7 +76,14 @@ class Binding<Type> : public IBinding {
 		return true;
 	}
 
-	[[nodiscard]] auto get_default_value() const -> std::string final { return std::string{ref}; }
+	[[nodiscard]] auto get_default_value() const -> std::string final {
+		auto ret = std::string{};
+		ret.reserve(ref.size() + 2);
+		ret += "\"";
+		ret += ref;
+		ret += "\"";
+		return ret;
+	}
 };
 
 template <NumberT Type>

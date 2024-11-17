@@ -42,6 +42,7 @@ struct Argument {
 	std::string_view name{};
 	std::string_view description{};
 	std::unique_ptr<IBinding> binding{};
+	bool assigned{};
 };
 
 struct Builtin {
@@ -59,10 +60,13 @@ struct Builtin {
 using ExecInfo = AppInfo;
 
 struct Storage {
+	enum class ArgType : int { Required, List, Implicit };
+
 	std::vector<Option> options{};
 
 	std::vector<Argument> arguments{};
 	std::optional<Argument> list_argument{};
+	std::optional<Argument> implicit_argument{};
 	std::string args_text{};
 
 	std::vector<std::unique_ptr<Command>> commands{};
@@ -74,6 +78,6 @@ struct Storage {
 	static auto get_print_key(char letter, std::string_view word) -> std::string;
 
 	void bind_option(BindInfo info, std::string_view key);
-	void bind_argument(BindInfo info, bool is_list);
+	void bind_argument(BindInfo info, ArgType type);
 };
 } // namespace cliq

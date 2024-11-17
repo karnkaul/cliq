@@ -32,22 +32,31 @@ void Storage::bind_option(BindInfo info, std::string_view const key) {
 	options.push_back(std::move(option));
 }
 
-void Storage::bind_argument(BindInfo info, bool const is_list) {
+void Storage::bind_argument(BindInfo info, ArgType const type) {
 	auto argument = Argument{
 		.name = info.name,
 		.description = info.description,
 		.binding = std::move(info.binding),
 	};
-	if (is_list) {
-		list_argument.emplace(std::move(argument));
-	} else if (list_argument) {
+	if ((list_argument || implicit_argument) && type == ArgType::Required) {
 		// cannot bind individual args after list arg
 		return;
-	} else {
-		arguments.push_back(std::move(argument));
 	}
 
-	std::string_view const suffix = is_list ? "..." : "";
-	std::format_to(std::back_inserter(args_text), " {}{}", info.name, suffix);
+	switch (type) {
+	case ArgType::Implicit:
+		std::format_to(std::back_inserter(args_text), "[{}(={})] ", info.name, argument.binding->get_default_value());
+		implicit_argument.emplace(std::move(argument));
+		break;
+	case ArgType::List:
+		std::format_to(std::back_inserter(args_text), "[{}...] ", info.name);
+		list_argument.emplace(std::move(argument));
+		break;
+	default:
+	case ArgType::Required:
+		std::format_to(std::back_inserter(args_text), "<{}> ", info.name);
+		arguments.push_back(std::move(argument));
+		break;
+	}
 }
 } // namespace cliq

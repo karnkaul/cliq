@@ -90,7 +90,7 @@ auto HelpText::append_to(std::ostream& out) const -> std::ostream& {
 	if (!cmd_id.empty()) { out << " " << cmd_id; }
 	if (!storage.options.empty()) { out << " [OPTION...]"; }
 	for (auto const& arg : storage.arguments) { out << " <" << arg.name << ">"; }
-	if (storage.list_argument) { out << " [" << storage.list_argument->name << "...]"; }
+	if (!storage.args_text.empty()) { out << " " << storage.args_text; }
 	out << "\n" << std::left;
 	if (!storage.options.empty() || !storage.builtins.empty()) {
 		out << "\nOPTIONS\n";
@@ -125,8 +125,7 @@ auto UsageText::append_to(std::ostream& out) const -> std::ostream& {
 		out << "(=" << option.binding->get_default_value() << ")] ";
 	}
 
-	for (auto const& argument : storage.arguments) { out << "<" << argument.name << "> "; }
-	if (storage.list_argument) { out << "[" << storage.list_argument->name << "...]"; }
+	if (!storage.args_text.empty()) { out << storage.args_text; }
 	return out;
 }
 
@@ -177,16 +176,21 @@ auto Parser::parse_option(Storage const& storage, Scanner& scanner) const -> Res
 	}
 }
 
-auto Parser::parse_argument(Storage const& storage, Scanner& scanner) -> Result {
+auto Parser::parse_argument(Storage& storage, Scanner& scanner) -> Result {
 	auto const input = scanner.get_value();
-	Argument const* argument = nullptr;
+	Argument* argument = nullptr;
 	if (m_next_argument >= storage.arguments.size()) {
+		if (storage.implicit_argument && !storage.implicit_argument->assigned) { argument = &*storage.implicit_argument; }
 		if (storage.list_argument) { argument = &*storage.list_argument; }
 	} else {
 		argument = &storage.arguments.at(m_next_argument++);
 	}
 
-	if (argument != nullptr && !argument->binding->assign_argument(input)) { return invalid_value(argument->name, input); }
+	if (argument != nullptr) {
+		if (!argument->binding->assign_argument(input)) { return invalid_value(argument->name, input); }
+		argument->assigned = true;
+	}
+
 	return success_v;
 }
 

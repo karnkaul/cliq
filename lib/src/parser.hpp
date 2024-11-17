@@ -68,7 +68,7 @@ class Parser : public Polymorphic {
 	[[nodiscard]] auto get_args_parsed() const -> std::size_t { return m_next_argument; }
 
 	auto parse_option(Storage const& storage, Scanner& scanner) const -> Result;
-	auto parse_argument(Storage const& storage, Scanner& scanner) -> Result;
+	auto parse_argument(Storage& storage, Scanner& scanner) -> Result;
 
   private:
 	auto parse_letters(Storage const& storage, Scanner& scanner) const -> Result;

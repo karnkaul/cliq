@@ -1,21 +1,12 @@
 #pragma once
+#include <cliq/concepts.hpp>
 #include <cliq/polymorphic.hpp>
 #include <charconv>
-#include <concepts>
 #include <memory>
 #include <string>
 #include <vector>
 
 namespace cliq {
-template <typename Type>
-concept StringyT = std::same_as<Type, std::string> || std::same_as<Type, std::string_view>;
-
-template <typename Type>
-concept NumberT = std::integral<Type> || std::floating_point<Type>;
-
-template <typename Type>
-concept NotBoolT = !std::same_as<Type, bool>;
-
 /// \brief Interface for binding options and arguments to variables.
 class IBinding : Polymorphic {
   public:

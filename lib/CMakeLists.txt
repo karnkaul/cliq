@@ -20,12 +20,16 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 target_sources(${PROJECT_NAME} PUBLIC FILE_SET HEADERS BASE_DIRS include FILES
   include/cliq/app_info.hpp
   include/cliq/app.hpp
+  include/cliq/arg.hpp
+  include/cliq/assignment.hpp
   include/cliq/binding.hpp
   include/cliq/command.hpp
+  include/cliq/concepts.hpp
   include/cliq/polymorphic.hpp
 )
 
 target_sources(${PROJECT_NAME} PRIVATE
+  src/arg.cpp
   src/cliq.cpp
   src/parser.cpp
   src/parser.hpp

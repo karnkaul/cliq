@@ -5,7 +5,7 @@
 namespace cliq {
 /// \brief Error parsing passed arguments.
 enum class ParseError : int {
-	InvalidCommand,
+	InvalidCommand = 100,
 	InvalidOption,
 	InvalidArgument,
 	MissingArgument,

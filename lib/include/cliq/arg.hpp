@@ -28,8 +28,6 @@ struct ParamPositional {
 	std::string_view name;
 	std::string_view help_text;
 
-	bool assigned{};
-
 	[[nodiscard]] constexpr auto is_required() const -> bool { return arg_type == ArgType::Required; }
 	[[nodiscard]] auto assign(std::string_view const value) const -> bool { return assignment(binding, value); }
 };

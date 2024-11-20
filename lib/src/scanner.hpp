@@ -11,6 +11,7 @@ class Scanner {
 
 	constexpr auto next() -> bool {
 		advance();
+		if (m_current.token.token_type == TokenType::ForceArgs) { m_force_args = true; }
 		return m_current.token.token_type != TokenType::None;
 	}
 
@@ -55,12 +56,13 @@ class Scanner {
 			return;
 		}
 		m_next = to_token(m_args[1]);
+		if (m_force_args) { m_next.token_type = TokenType::Argument; }
 		m_args = m_args.subspan(1);
 	}
 
 	constexpr void set_key_value() {
 		m_current.key = m_current.value = {};
-		if (m_current.token.token_type == TokenType::Option) {
+		if (!m_force_args && m_current.token.token_type == TokenType::Option) {
 			m_current.key = m_current.token.value;
 			auto const eq = m_current.key.find_first_of('=');
 			if (eq != std::string_view::npos) {
@@ -80,5 +82,6 @@ class Scanner {
 		std::string_view value{};
 	} m_current{};
 	Token m_next{};
+	bool m_force_args{};
 };
 } // namespace cliq

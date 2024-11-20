@@ -2,7 +2,7 @@
 add_library(${PROJECT_NAME})
 add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 
-target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
+target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_23)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
   ${PROJECT_NAME}::${PROJECT_NAME}-compile-options
@@ -25,6 +25,8 @@ target_sources(${PROJECT_NAME} PUBLIC FILE_SET HEADERS BASE_DIRS include FILES
   include/cliq/binding.hpp
   include/cliq/command.hpp
   include/cliq/concepts.hpp
+  include/cliq/parse_result.hpp
+  include/cliq/parse.hpp
   include/cliq/polymorphic.hpp
 )
 
@@ -32,6 +34,7 @@ target_sources(${PROJECT_NAME} PRIVATE
   src/arg.cpp
   src/cliq.cpp
   src/parser.cpp
+  src/parse.cpp
   src/parser.hpp
   src/scanner.hpp
   src/storage.cpp

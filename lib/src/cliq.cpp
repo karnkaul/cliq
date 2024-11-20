@@ -31,7 +31,7 @@ struct Command::Impl : Parser {
 			auto token_type = scanner.get_token_type();
 			if (force_args) { token_type = TokenType::Argument; }
 			switch (token_type) {
-			case TokenType::OptEnd: force_args = true; break;
+			case TokenType::ForceArgs: force_args = true; break;
 			case TokenType::Argument: {
 				result = parse_argument(storage, scanner);
 				if (result != success_v) { return result; }

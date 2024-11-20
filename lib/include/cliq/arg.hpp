@@ -1,5 +1,5 @@
 #pragma once
-#include <cliq/assignment.hpp>
+#include <cliq/binding.hpp>
 #include <cstdint>
 #include <span>
 #include <string_view>
@@ -11,25 +11,25 @@ class Arg;
 enum class ArgType : std::int8_t { Optional, Required };
 
 struct ParamOption {
-	Assignment assignment;
-	void* binding;
+	Binding binding;
+	void* data;
 	bool is_flag;
 	char letter;
 	std::string_view word;
 	std::string_view help_text;
 
-	[[nodiscard]] auto assign(std::string_view const value) const -> bool { return assignment(binding, value); }
+	[[nodiscard]] auto assign(std::string_view const value) const -> bool { return binding.assign(data, value); }
 };
 
 struct ParamPositional {
 	ArgType arg_type;
-	Assignment assignment;
-	void* binding;
+	Binding binding;
+	void* data;
 	std::string_view name;
 	std::string_view help_text;
 
 	[[nodiscard]] constexpr auto is_required() const -> bool { return arg_type == ArgType::Required; }
-	[[nodiscard]] auto assign(std::string_view const value) const -> bool { return assignment(binding, value); }
+	[[nodiscard]] auto assign(std::string_view const value) const -> bool { return binding.assign(data, value); }
 };
 
 struct ParamCommand {
@@ -47,20 +47,20 @@ class Arg {
 
 	template <NumberT Type>
 	Arg(Type& out, std::string_view const key, std::string_view const help_text = {})
-		: m_param(ParamOption{assignment<Type>(), &out, false, to_letter(key), to_word(key), help_text}) {}
+		: m_param(ParamOption{Binding::create<Type>(), &out, false, to_letter(key), to_word(key), help_text}) {}
 
 	template <StringyT Type>
 	Arg(Type& out, std::string_view const key, std::string_view const help_text = {})
-		: m_param(ParamOption{assignment<Type>(), &out, false, to_letter(key), to_word(key), help_text}) {}
+		: m_param(ParamOption{Binding::create<Type>(), &out, false, to_letter(key), to_word(key), help_text}) {}
 
 	// Positional arguments
 	template <NumberT Type>
 	Arg(Type& out, ArgType const type, std::string_view const name, std::string_view const help_text = {})
-		: m_param(ParamPositional{type, assignment<Type>(), &out, name, help_text}) {}
+		: m_param(ParamPositional{type, Binding::create<Type>(), &out, name, help_text}) {}
 
 	template <StringyT Type>
 	Arg(Type& out, ArgType const type, std::string_view const name, std::string_view const help_text = {})
-		: m_param(ParamPositional{type, assignment<Type>(), &out, name, help_text}) {}
+		: m_param(ParamPositional{type, Binding::create<Type>(), &out, name, help_text}) {}
 
 	// Commands
 	Arg(std::span<Arg const> args, std::string_view name, std::string_view help_text = {});

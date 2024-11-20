@@ -21,7 +21,6 @@ target_sources(${PROJECT_NAME} PUBLIC FILE_SET HEADERS BASE_DIRS include FILES
   include/cliq/app_info.hpp
   include/cliq/app.hpp
   include/cliq/arg.hpp
-  include/cliq/assignment.hpp
   include/cliq/binding.hpp
   include/cliq/command.hpp
   include/cliq/concepts.hpp

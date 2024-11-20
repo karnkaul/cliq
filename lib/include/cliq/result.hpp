@@ -15,13 +15,13 @@ enum class ParseError : int {
 struct ExecutedBuiltin {};
 
 /// \brief Result of parsing args / running selected command.
-class ParseResult {
+class Result {
   public:
-	ParseResult() = default;
+	Result() = default;
 
-	constexpr ParseResult(std::string_view command_name) : m_command_name(command_name) {}
-	constexpr ParseResult(ParseError parse_error) : m_parse_error(parse_error) {}
-	constexpr ParseResult(ExecutedBuiltin const& /*eb*/) : m_executed_builtin(true) {}
+	constexpr Result(std::string_view command_name) : m_command_name(command_name) {}
+	constexpr Result(ParseError parse_error) : m_parse_error(parse_error) {}
+	constexpr Result(ExecutedBuiltin const& /*eb*/) : m_executed_builtin(true) {}
 
 	/// \brief Check if cliq executed a builtin option (like "--help")
 	/// \returns true if cliq executed a builtin option.
@@ -48,7 +48,7 @@ class ParseResult {
 	constexpr explicit operator bool() const { return !early_return(); }
 
 	/// \brief Compare equality with another ParseResult.
-	auto operator==(ParseResult const& rhs) const -> bool = default;
+	auto operator==(Result const& rhs) const -> bool = default;
 
   private:
 	std::string_view m_command_name{};

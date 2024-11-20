@@ -5,5 +5,5 @@
 #include <cliq/result.hpp>
 
 namespace cliq {
-[[nodiscard]] auto parse(AppInfo const& info, std::span<Arg const> args, int argc, char const* const* argv) -> ParseResult;
+[[nodiscard]] auto parse(AppInfo const& info, std::span<Arg const> args, int argc, char const* const* argv) -> Result;
 }

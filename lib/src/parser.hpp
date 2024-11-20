@@ -6,8 +6,6 @@
 namespace cliq {
 class Parser {
   public:
-	using Result = ParseResult;
-
 	explicit Parser(AppInfo const& info, std::string_view const exe_name, std::span<char const* const> cli_args)
 		: m_info(info), m_exe_name(exe_name), m_scanner(cli_args) {}
 
@@ -24,7 +22,7 @@ class Parser {
 	auto parse_option() -> Result;
 	auto parse_letters() -> Result;
 	auto parse_word() -> Result;
-	auto parse_last_option(ParamOption const& option) -> Result;
+	auto parse_last_option(ParamOption const& option, std::string_view input) -> Result;
 	auto parse_argument() -> Result;
 	auto parse_positional() -> Result;
 
@@ -35,6 +33,8 @@ class Parser {
 	[[nodiscard]] auto next_positional() -> ParamPositional const*;
 
 	[[nodiscard]] auto check_required() -> Result;
+
+	[[nodiscard]] auto get_cmd_name() const -> std::string_view { return m_cursor.cmd == nullptr ? "" : m_cursor.cmd->name; }
 
 	AppInfo const& m_info;
 	std::string_view m_exe_name;

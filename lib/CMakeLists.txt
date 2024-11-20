@@ -25,15 +25,15 @@ target_sources(${PROJECT_NAME} PUBLIC FILE_SET HEADERS BASE_DIRS include FILES
   include/cliq/binding.hpp
   include/cliq/command.hpp
   include/cliq/concepts.hpp
-  include/cliq/parse_result.hpp
   include/cliq/parse.hpp
   include/cliq/polymorphic.hpp
+  include/cliq/result.hpp
 )
 
 target_sources(${PROJECT_NAME} PRIVATE
   src/arg.cpp
   src/cliq.cpp
-  src/parser.cpp
+  src/parser_old.cpp
   src/parse.cpp
   src/parser.hpp
   src/scanner.hpp

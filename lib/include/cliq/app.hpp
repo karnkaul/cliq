@@ -3,7 +3,7 @@
 #include <cliq/command.hpp>
 #include <cliq/result.hpp>
 
-namespace cliq {
+namespace cliq::old {
 /// \brief Interface for the main application.
 class IApp : public Polymorphic {
   public:
@@ -80,4 +80,4 @@ class CommandListApp : public IApp {
 
 	std::unique_ptr<Impl, Deleter> m_impl{};
 };
-} // namespace cliq
+} // namespace cliq::old

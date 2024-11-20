@@ -1,12 +1,12 @@
 #include <cliq/app.hpp>
-#include <parser.hpp>
+#include <parser_old.hpp>
 #include <scanner.hpp>
 #include <storage.hpp>
 #include <algorithm>
 #include <cassert>
 #include <filesystem>
 
-namespace cliq {
+namespace cliq::old {
 namespace fs = std::filesystem;
 
 struct Command::Impl : Parser {
@@ -192,4 +192,4 @@ auto CommandListApp::run(int argc, char const* const* argv) -> Result {
 	m_impl->storage.exec_info = m_impl->app_info;
 	return m_impl->run(argc, argv);
 }
-} // namespace cliq
+} // namespace cliq::old

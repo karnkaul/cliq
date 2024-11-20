@@ -1,13 +1,13 @@
 #pragma once
-#include <cliq/binding.hpp>
+#include <cliq/binding_old.hpp>
 #include <cliq/build_version.hpp>
-#include <cliq/result.hpp>
+#include <cliq/result_old.hpp>
 
-namespace cliq {
+namespace cliq::old {
 /// \brief Abstract base for executable commands with bound options and arguments.
 class Command : public Polymorphic {
   public:
-	using Result = cliq::Result;
+	using Result = cliq::old::Result;
 
 	explicit Command();
 
@@ -103,4 +103,4 @@ class Command : public Polymorphic {
 	friend class CommandApp;
 	friend class CommandListApp;
 };
-} // namespace cliq
+} // namespace cliq::old

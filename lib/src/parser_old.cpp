@@ -1,10 +1,10 @@
-#include <parser.hpp>
+#include <parser_old.hpp>
 #include <algorithm>
 #include <format>
 #include <iomanip>
 #include <iostream>
 
-namespace cliq {
+namespace cliq::old {
 namespace {
 template <typename ContainerT, typename GetStringT>
 constexpr auto get_max_width(ContainerT&& container, GetStringT get_string) -> std::size_t {
@@ -252,4 +252,4 @@ auto Parser::get_value_for(std::string_view const input, Option const& option, s
 	if (!option.binding->assign_argument(value)) { return invalid_value(option.name, value); }
 	return success_v;
 }
-} // namespace cliq
+} // namespace cliq::old

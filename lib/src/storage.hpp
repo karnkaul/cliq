@@ -3,7 +3,7 @@
 #include <cliq/command.hpp>
 #include <optional>
 
-namespace cliq {
+namespace cliq::old {
 struct OptionKey {
 	char letter{};
 	std::string_view word{};
@@ -80,4 +80,4 @@ struct Storage {
 	void bind_option(BindInfo info, std::string_view key);
 	void bind_argument(BindInfo info, ArgType type);
 };
-} // namespace cliq
+} // namespace cliq::old

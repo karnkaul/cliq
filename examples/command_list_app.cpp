@@ -2,7 +2,7 @@
 #include <print>
 
 namespace {
-struct Base : cliq::Command {
+struct Base : cliq::old::Command {
 	Base() {
 		required(num_0, "NUM0", "first integer");
 		required(num_1, "NUM1", "second integer");
@@ -56,7 +56,7 @@ struct Div : Base {
 	}
 };
 
-struct App : cliq::CommandListApp {
+struct App : cliq::old::CommandListApp {
 	static constexpr auto info_v = cliq::AppInfo{
 		.description = "calculator",
 		.version = cliq::version_v,

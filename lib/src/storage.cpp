@@ -1,7 +1,7 @@
 #include <storage.hpp>
 #include <format>
 
-namespace cliq {
+namespace cliq::old {
 Builtin::Builtin(std::string_view const word, std::string_view const description)
 	: word(word), description(description), print_key(Storage::get_print_key({}, word)) {}
 
@@ -59,4 +59,4 @@ void Storage::bind_argument(BindInfo info, ArgType const type) {
 		break;
 	}
 }
-} // namespace cliq
+} // namespace cliq::old

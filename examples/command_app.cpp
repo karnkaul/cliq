@@ -2,7 +2,7 @@
 #include <print>
 
 namespace {
-struct Multiplier : cliq::CommandApp {
+struct Multiplier : cliq::old::CommandApp {
 	static constexpr auto info_v = cliq::AppInfo{
 		.description = "multiply two numbers",
 		.version = cliq::version_v,

@@ -12,7 +12,6 @@ constexpr auto get_exe_name(std::string_view const arg0) -> std::string_view {
 }
 } // namespace
 
-namespace foo {
 auto Parser::parse(std::span<Arg const> args) -> Result {
 	m_args = args;
 	m_cursor = {};
@@ -199,7 +198,6 @@ auto Parser::check_required() -> Result {
 
 	return {};
 }
-} // namespace foo
 } // namespace cliq
 
 [[nodiscard]] auto cliq::parse(AppInfo const& info, std::span<Arg const> args, int argc, char const* const* argv) -> ParseResult {
@@ -209,6 +207,6 @@ auto Parser::check_required() -> Result {
 		exe_name = get_exe_name(cli_args.front());
 		cli_args = cli_args.subspan(1);
 	};
-	auto parser = foo::Parser{info, exe_name, cli_args};
+	auto parser = Parser{info, exe_name, cli_args};
 	return parser.parse(args);
 }

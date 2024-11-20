@@ -1,95 +1,115 @@
 #include <cliq/parse.hpp>
 #include <array>
+#include <fstream>
 #include <print>
 
 namespace {
-struct Base {
-	int num_0{};
-	int num_1{};
+// NOLINTNEXTLINE(cppcoreguidelines-virtual-class-destructor,cppcoreguidelines-special-member-functions)
+struct Command {
+	auto operator=(Command&&) = delete;
 
-	void print_params() const { std::println("params:\n  num_0\t: {}\n  num_1\t: {}\n", num_0, num_1); }
+	[[nodiscard]] virtual auto get_name() const -> std::string_view = 0;
+	[[nodiscard]] virtual auto get_help() const -> std::string_view = 0;
 
-	std::array<cliq::Arg, 2> args{
-		cliq::Arg{num_0, cliq::ArgType::Required, "NUM_0"},
-		cliq::Arg{num_1, cliq::ArgType::Required, "NUM_1"},
-	};
+	[[nodiscard]] virtual auto get_args() const -> std::span<cliq::Arg const> = 0;
+
+	virtual auto execute(bool debug) -> int = 0;
 };
 
-struct Add : Base {
-	static constexpr std::string_view name_v{"add"};
-	static constexpr std::string_view help_v{"add two integers"};
+// NOLINTNEXTLINE(cppcoreguidelines-virtual-class-destructor)
+struct Factorial : Command {
+	[[nodiscard]] auto get_name() const -> std::string_view final { return "factorial"; }
+	[[nodiscard]] auto get_help() const -> std::string_view final { return "print the factorial of an integer"; }
 
-	auto operator()(bool const verbose) const -> int {
-		if (verbose) { print_params(); }
-		std::println("{} + {} = {}", num_0, num_1, num_0 + num_1);
-		return EXIT_SUCCESS;
-	}
-};
+	[[nodiscard]] auto get_args() const -> std::span<cliq::Arg const> final { return args; }
 
-struct Sub : Base {
-	static constexpr std::string_view name_v{"sub"};
-	static constexpr std::string_view help_v{"subtract two integers"};
+	auto execute(bool const debug) -> int final {
+		if (debug) { std::println("params:\n  num\t: {}\n", num); }
 
-	auto operator()(bool const verbose) const -> int {
-		if (verbose) { print_params(); }
-		std::println("{} - {} = {}", num_0, num_1, num_0 - num_1);
-		return EXIT_SUCCESS;
-	}
-};
-
-struct Mul : Base {
-	static constexpr std::string_view name_v{"mul"};
-	static constexpr std::string_view help_v{"multiply two integers"};
-
-	auto operator()(bool const verbose) const -> int {
-		if (verbose) { print_params(); }
-		std::println("{} * {} = {}", num_0, num_1, num_0 * num_1);
-		return EXIT_SUCCESS;
-	}
-};
-
-struct Div : Base {
-	static constexpr std::string_view name_v{"div"};
-	static constexpr std::string_view help_v{"divide two integers"};
-
-	auto operator()(bool const verbose) const -> int {
-		if (verbose) { print_params(); }
-
-		if (num_1 == 0) {
-			std::println(stderr, "Division by zero");
+		if (num < 0) {
+			std::println(stderr, "invalid num: {}", num);
 			return EXIT_FAILURE;
 		}
 
-		std::println("{} / {} = {}", num_0, num_1, num_0 - num_1);
+		if (num > 20) {
+			std::println("num too large: {}", num);
+			return EXIT_FAILURE;
+		}
+
+		auto result = std::int64_t{1};
+		for (auto current = std::int64_t(num); current > 1; --current) { result *= current; }
+
+		std::println("factorial of {} is {}", num, result);
 		return EXIT_SUCCESS;
 	}
+
+	int num{};
+
+	std::array<cliq::Arg, 1> args{
+		cliq::positional(num, cliq::ArgType::Required, "NUM", "non-negative integer"),
+	};
+};
+
+// NOLINTNEXTLINE(cppcoreguidelines-virtual-class-destructor)
+struct Linecount : Command {
+	[[nodiscard]] auto get_name() const -> std::string_view final { return "linecount"; }
+	[[nodiscard]] auto get_help() const -> std::string_view final { return "count the lines in a file"; }
+
+	[[nodiscard]] auto get_args() const -> std::span<cliq::Arg const> final { return args; }
+
+	auto execute(bool const debug) -> int final {
+		if (debug) { std::println("params:\n  path\t: {}", path); }
+
+		if (path.empty()) {
+			std::println(stderr, "empty path");
+			return EXIT_FAILURE;
+		}
+
+		auto file = std::ifstream{path.data()}; // path is null terminated
+		if (!file) {
+			std::println(stderr, "failed to open file: '{}'", path);
+			return EXIT_FAILURE;
+		}
+
+		auto result = std::int64_t{};
+		for (auto line = std::string{}; std::getline(file, line);) { ++result; }
+
+		std::println("line count of '{}': {}", path, result);
+		return EXIT_SUCCESS;
+	}
+
+	std::string_view path{};
+
+	std::array<cliq::Arg, 1> args{
+		cliq::positional(path, cliq::ArgType::Required, "PATH", "path to input file"),
+	};
 };
 
 auto run(int argc, char const* const* argv) -> int {
 	static constexpr auto app_info_v = cliq::AppInfo{
-		.help_text = "calculator",
+		.help_text = "multiple commands",
 		.version = cliq::version_v,
 	};
 
-	auto verbose = false;
-	auto add = Add{};
-	auto sub = Sub{};
-	auto mul = Mul{};
-	auto div = Div{};
+	auto debug = false;
+	auto factorial = Factorial{};
+	auto linecount = Linecount{};
 	auto const args = std::array{
-		cliq::Arg{verbose, "v,verbose", "print parameters"}, cliq::Arg{add.args, Add::name_v, Add::help_v}, cliq::Arg{sub.args, Sub::name_v, Sub::help_v},
-		cliq::Arg{mul.args, Mul::name_v, Mul::help_v},		 cliq::Arg{div.args, Div::name_v, Div::help_v},
+		cliq::flag(debug, "d,debug", "print parameters"),
+
+		cliq::command(factorial.get_args(), factorial.get_name(), factorial.get_help()),
+		cliq::command(linecount.get_args(), linecount.get_name(), linecount.get_help()),
 	};
 
 	auto const parse_result = cliq::parse(app_info_v, args, argc, argv);
 	if (parse_result.early_return()) { return parse_result.get_return_code(); }
 
-	if (parse_result.get_command_name() == Add::name_v) { return add(verbose); }
-	if (parse_result.get_command_name() == Sub::name_v) { return sub(verbose); }
-	if (parse_result.get_command_name() == Mul::name_v) { return mul(verbose); }
-	if (parse_result.get_command_name() == Div::name_v) { return div(verbose); }
+	auto const cmd_name = parse_result.get_command_name();
+	if (cmd_name == factorial.get_name()) { return factorial.execute(debug); }
+	if (cmd_name == linecount.get_name()) { return linecount.execute(debug); }
 
-	return EXIT_SUCCESS;
+	std::println(stderr, "unexpected command name: '{}'", cmd_name);
+	return EXIT_FAILURE;
 }
 } // namespace
 

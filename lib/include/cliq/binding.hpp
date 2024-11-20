@@ -1,126 +1,63 @@
 #pragma once
-#include <cliq/polymorphic.hpp>
+#include <cliq/concepts.hpp>
 #include <charconv>
-#include <concepts>
-#include <memory>
-#include <string>
 #include <vector>
 
 namespace cliq {
-template <typename Type>
-concept StringyT = std::same_as<Type, std::string> || std::same_as<Type, std::string_view>;
+using Assignment = bool (*)(void* binding, std::string_view value);
+using AsString = std::string (*)(void const* binding);
 
-template <typename Type>
-concept NumberT = std::integral<Type> || std::floating_point<Type>;
-
-template <typename Type>
-concept NotBoolT = !std::same_as<Type, bool>;
-
-/// \brief Interface for binding options and arguments to variables.
-class IBinding : Polymorphic {
-  public:
-	/// \brief Check if the binding a flag.
-	/// Flags can be entered as concatenated letters, thus such bindings must not require a value for assignment.
-	/// \returns true if flag.
-	[[nodiscard]] virtual auto is_flag() const -> bool = 0;
-
-	/// \brief Assign an argument to the bound parameter.
-	/// \param value Argument to bind.
-	/// \returns true if successful.
-	[[nodiscard]] virtual auto assign_argument(std::string_view value) const -> bool = 0;
-
-	/// \brief Get the default value of the bound parameter.
-	/// \returns Default value of bound parameter.
-	[[nodiscard]] virtual auto get_default_value() const -> std::string = 0;
-};
-
-/// \brief Used for custom bindings.
-struct BindInfo {
-	std::unique_ptr<IBinding> binding{};
-	std::string_view name{};
-	std::string_view description{};
-};
-
-/// \brief Customization point.
-template <typename Type>
-class Binding;
-
-template <>
-class Binding<bool> : public IBinding {
-  public:
-	bool& ref;
-
-	explicit Binding(bool& out) : ref(out) {}
-
-	[[nodiscard]] auto is_flag() const -> bool final { return true; }
-
-	[[nodiscard]] auto assign_argument(std::string_view value) const -> bool final {
-		ref = !(value == "false" || value == "0");
-		return true;
-	}
-
-	[[nodiscard]] auto get_default_value() const -> std::string final { return ref ? "true" : "false"; }
-};
-
-template <StringyT Type>
-class Binding<Type> : public IBinding {
-  public:
-	Type& ref;
-
-	explicit Binding(Type& out) : ref(out) {}
-
-	[[nodiscard]] auto is_flag() const -> bool final { return false; }
-
-	[[nodiscard]] auto assign_argument(std::string_view value) const -> bool final {
-		ref = Type{value};
-		return true;
-	}
-
-	[[nodiscard]] auto get_default_value() const -> std::string final {
-		auto ret = std::string{};
-		ret.reserve(ref.size() + 2);
-		ret += "\"";
-		ret += ref;
-		ret += "\"";
-		return ret;
-	}
-};
+inline auto assign_to(bool& out, std::string_view /*value*/) -> bool {
+	out = true;
+	return true;
+}
 
 template <NumberT Type>
-class Binding<Type> : public IBinding {
-  public:
-	Type& ref;
+auto assign_to(Type& out, std::string_view const value) {
+	auto const* last = value.data() + value.size();
+	auto const [ptr, ec] = std::from_chars(value.data(), last, out);
+	return ptr == last && ec == std::errc{};
+}
 
-	explicit Binding(Type& out) : ref(out) {}
+template <StringyT Type>
+auto assign_to(Type& out, std::string_view const value) -> bool {
+	out = value;
+	return true;
+}
 
-	[[nodiscard]] auto is_flag() const -> bool final { return false; }
-
-	[[nodiscard]] auto assign_argument(std::string_view value) const -> bool final {
-		auto const* end = value.data() + value.size();
-		auto const [ptr, ec] = std::from_chars(value.data(), end, ref);
-		return ec == std::errc{} && ptr == end;
-	}
-
-	[[nodiscard]] auto get_default_value() const -> std::string final { return std::to_string(ref); }
-};
-
-/// \brief Binding for an arbitary number of arguments.
 template <typename Type>
-class ListBinding : public IBinding {
-  public:
-	std::vector<Type>& ref;
+auto assign_to(std::vector<Type>& out, std::string_view const value) -> bool {
+	auto t = Type{};
+	if (!assign_to(t, value)) { return false; }
+	out.push_back(std::move(t));
+	return true;
+}
 
-	explicit ListBinding(std::vector<Type>& out) : ref(out) {}
-
-	[[nodiscard]] auto is_flag() const -> bool final { return false; }
-
-	[[nodiscard]] auto assign_argument(std::string_view value) const -> bool final {
-		auto t = Type{};
-		if (!Binding<Type>{t}.assign_argument(value)) { return false; }
-		ref.push_back(std::move(t));
-		return true;
+template <typename Type>
+auto as_string(Type const& t) -> std::string {
+	if constexpr (std::constructible_from<std::string, Type>) {
+		return std::string{t};
+	} else {
+		using std::to_string;
+		return to_string(t);
 	}
+}
 
-	[[nodiscard]] auto get_default_value() const -> std::string final { return "..."; }
+template <typename Type>
+auto as_string(std::vector<Type> const& /*vec*/) -> std::string {
+	return "...";
+}
+
+struct Binding {
+	Assignment assign{};
+	AsString to_string{};
+
+	template <typename Type>
+	static auto create() -> Binding {
+		return Binding{
+			.assign = [](void* binding, std::string_view const value) -> bool { return assign_to(*static_cast<Type*>(binding), value); },
+			.to_string = [](void const* binding) -> std::string { return as_string(*static_cast<Type const*>(binding)); },
+		};
+	}
 };
 } // namespace cliq

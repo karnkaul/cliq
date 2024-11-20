@@ -5,7 +5,7 @@ namespace cliq {
 /// \brief Application info.
 struct AppInfo {
 	/// \brief One liner app description.
-	std::string_view description{};
+	std::string_view help_text{};
 	/// \brief Version text.
 	std::string_view version{"unknown"};
 

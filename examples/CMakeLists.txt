@@ -6,7 +6,5 @@ function(create_executable NAME MAIN)
   target_sources(${NAME} PRIVATE "${MAIN}")
 endfunction()
 
-create_executable(cliq-multiplier command_app.cpp)
-create_executable(cliq-calculator command_list_app.cpp)
 create_executable(cliq-basic basic.cpp)
 create_executable(cliq-commands commands.cpp)

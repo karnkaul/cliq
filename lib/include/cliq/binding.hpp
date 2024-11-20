@@ -14,8 +14,8 @@ inline auto assign_to(bool& out, std::string_view /*value*/) -> bool {
 
 template <NumberT Type>
 auto assign_to(Type& out, std::string_view const value) {
-	auto const* last = value.begin() + value.size();
-	auto const [ptr, ec] = std::from_chars(value.begin(), last, out);
+	auto const* last = value.data() + value.size();
+	auto const [ptr, ec] = std::from_chars(value.data(), last, out);
 	return ptr == last && ec == std::errc{};
 }
 

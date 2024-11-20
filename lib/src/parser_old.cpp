@@ -82,7 +82,7 @@ void ErrorPrinter::append_helpline() {
 }
 
 auto HelpText::append_to(std::ostream& out) const -> std::ostream& {
-	if (!storage.exec_info.description.empty()) { out << storage.exec_info.description << "\n"; }
+	if (!storage.exec_info.help_text.empty()) { out << storage.exec_info.help_text << "\n"; }
 	auto const options_width = get_max_width(storage.options, [](auto const& option) -> std::string_view { return option.print_key; });
 	auto const builtin_width = get_max_width(storage.builtins, [](auto const& builtin) { return builtin.print_key; });
 	auto width = std::max(options_width, builtin_width) + 4;

@@ -4,7 +4,7 @@
 namespace {
 struct Multiplier : cliq::old::CommandApp {
 	static constexpr auto info_v = cliq::AppInfo{
-		.description = "multiply two numbers",
+		.help_text = "multiply two numbers",
 		.version = cliq::version_v,
 	};
 

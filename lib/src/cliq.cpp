@@ -156,7 +156,7 @@ struct CommandListApp::Impl : Parser {
 		auto const& command = *it;
 		command->m_impl->initialize(exe_name, command->get_id());
 		command->m_impl->storage.exec_info = AppInfo{
-			.description = command->get_description(),
+			.help_text = command->get_description(),
 			.epilogue = command->get_epilogue(),
 		};
 

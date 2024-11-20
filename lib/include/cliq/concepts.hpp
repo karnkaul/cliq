@@ -10,5 +10,8 @@ template <typename Type>
 concept NumberT = !std::same_as<bool, Type> && (std::integral<Type> || std::floating_point<Type>);
 
 template <typename Type>
+concept ParamT = StringyT<Type> || NumberT<Type>;
+
+template <typename Type>
 concept NotBoolT = !std::same_as<Type, bool>;
 } // namespace cliq

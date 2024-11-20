@@ -58,7 +58,7 @@ struct Div : Base {
 
 struct App : cliq::old::CommandListApp {
 	static constexpr auto info_v = cliq::AppInfo{
-		.description = "calculator",
+		.help_text = "calculator",
 		.version = cliq::version_v,
 	};
 

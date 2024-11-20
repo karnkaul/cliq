@@ -40,7 +40,7 @@ class CommandApp : public IApp, public Command {
 
   private:
 	[[nodiscard]] auto get_id() const -> std::string_view final { return "[n/a]"; }
-	[[nodiscard]] auto get_description() const -> std::string_view final { return m_app_info.description; }
+	[[nodiscard]] auto get_description() const -> std::string_view final { return m_app_info.help_text; }
 
 	AppInfo m_app_info{};
 };

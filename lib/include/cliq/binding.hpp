@@ -43,6 +43,11 @@ auto as_string(Type const& t) -> std::string {
 	}
 }
 
+template <typename Type>
+auto as_string(std::vector<Type> const& /*vec*/) -> std::string {
+	return "...";
+}
+
 struct Binding {
 	Assignment assign{};
 	AsString to_string{};

@@ -26,6 +26,7 @@ class Parser {
 	auto parse_argument() -> Result;
 	auto parse_positional() -> Result;
 
+	[[nodiscard]] auto try_builtin(std::string_view word) const -> bool;
 	[[nodiscard]] auto find_option(char letter) const -> ParamOption const*;
 	[[nodiscard]] auto find_option(std::string_view word) const -> ParamOption const*;
 	[[nodiscard]] auto find_command(std::string_view name) const -> ParamCommand const*;
@@ -35,6 +36,7 @@ class Parser {
 	[[nodiscard]] auto check_required() -> Result;
 
 	[[nodiscard]] auto get_cmd_name() const -> std::string_view { return m_cursor.cmd == nullptr ? "" : m_cursor.cmd->name; }
+	[[nodiscard]] auto get_help_text() const -> std::string_view { return m_cursor.cmd == nullptr ? m_info.help_text : m_cursor.cmd->help_text; }
 
 	AppInfo const& m_info;
 	std::string_view m_exe_name;
